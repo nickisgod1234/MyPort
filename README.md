@@ -22,6 +22,8 @@
 
 ## เริ่มใช้งาน
 
+**ต้องการ:** Flutter 3.27+ (Dart 3.5+)
+
 ```bash
 flutter pub get
 flutter run
