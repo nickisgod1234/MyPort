@@ -14,7 +14,7 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/dashboard',
+  initialLocation: '/dca',
   routes: [
     ShellRoute(
       navigatorKey: _shellNavigatorKey,

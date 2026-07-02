@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_theme.dart';
+import 'trial_banner.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/portfolio_models.dart';
 
@@ -388,20 +389,33 @@ class AppScaffold extends StatelessWidget {
     required this.title,
     required this.body,
     this.actions,
+    this.trialPageName,
   });
 
   final String title;
   final Widget body;
   final List<Widget>? actions;
+  final String? trialPageName;
 
   @override
   Widget build(BuildContext context) {
+    Widget content = body;
+    if (trialPageName != null) {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TrialBanner(pageName: trialPageName!),
+          Expanded(child: body),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
         actions: actions,
       ),
-      body: body,
+      body: content,
     );
   }
 }

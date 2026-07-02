@@ -18,6 +18,7 @@ class AnalysisScreen extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Analysis',
+      trialPageName: 'Analysis',
       body: analysisAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('เกิดข้อผิดพลาด: $e')),

@@ -8,6 +8,7 @@ import '../../data/models/portfolio_models.dart';
 import '../../providers/app_providers.dart';
 import '../../shared/widgets/common_widgets.dart';
 import '../../shared/widgets/portfolio_chart.dart';
+import '../../shared/widgets/trial_banner.dart';
 
 class AssetDetailScreen extends ConsumerWidget {
   const AssetDetailScreen({super.key, required this.symbol});
@@ -43,7 +44,12 @@ class AssetDetailScreen extends ConsumerWidget {
           orElse: () => Text(displayName),
         ),
       ),
-      body: summaryAsync.when(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const TrialBanner(pageName: 'รายละเอียดสินทรัพย์'),
+          Expanded(
+            child: summaryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('เกิดข้อผิดพลาด: $e')),
         data: (summary) {
@@ -187,6 +193,9 @@ class AssetDetailScreen extends ConsumerWidget {
             ],
           );
         },
+            ),
+          ),
+        ],
       ),
     );
   }

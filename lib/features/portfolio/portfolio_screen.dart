@@ -18,6 +18,7 @@ class PortfolioScreen extends ConsumerWidget {
 
     return AppScaffold(
       title: AppConstants.portfolioName,
+      trialPageName: 'Portfolio',
       body: summaryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('เกิดข้อผิดพลาด: $e')),

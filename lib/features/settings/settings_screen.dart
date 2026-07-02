@@ -75,6 +75,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     return AppScaffold(
       title: 'Settings',
+      trialPageName: 'Settings',
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

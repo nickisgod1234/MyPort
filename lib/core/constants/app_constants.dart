@@ -10,6 +10,52 @@ class AppConstants {
   static const defaultRetirementAge = 60;
   static const defaultMonthlyBudget = 10000.0;
 
+  /// สินทรัพย์สำหรับหน้าคำนวณ DCA (ตาม spreadsheet)
+  static const dcaCalculatorAssets = <Map<String, dynamic>>[
+    {
+      'symbol': 'VT',
+      'name': 'VT',
+      'target': 0.45,
+      'defaultValue': 4521.28,
+    },
+    {
+      'symbol': 'KKP_NDQ',
+      'name': 'KKP NDQ100-UH-E',
+      'target': 0.25,
+      'defaultValue': 2500.0,
+    },
+    {
+      'symbol': 'TLSEMICON',
+      'name': 'TLSEMICON-UH',
+      'target': 0.10,
+      'defaultValue': 1000.0,
+    },
+    {
+      'symbol': 'MTS_GOLD',
+      'name': 'MTS Gold',
+      'target': 0.10,
+      'defaultValue': 990.9,
+    },
+    {
+      'symbol': 'MSFT',
+      'name': 'Microsoft',
+      'target': 0.05,
+      'defaultValue': 500.0,
+    },
+    {
+      'symbol': 'BTCUSD',
+      'name': 'Bitcoin',
+      'target': 0.03,
+      'defaultValue': 300.0,
+    },
+    {
+      'symbol': 'RKLB',
+      'name': 'Rocket Lab',
+      'target': 0.02,
+      'defaultValue': 200.0,
+    },
+  ];
+
   static const marketWatchSymbols = ['VT', 'RKLB', 'MSFT', 'GCUSD'];
   static const watchlistSymbols = ['AAPL', 'NVDA', 'AMZN', 'V', 'SPY'];
 
@@ -29,6 +75,7 @@ class AppConstants {
     'TLSEMICON': 'TLSEMICON-UH',
     'RKLB': 'RKLB',
     'MSFT': 'MSFT',
+    'BTCUSD': 'Bitcoin',
     'AAPL': 'Apple',
     'NVDA': 'Nvidia',
     'AMZN': 'Amazon',
@@ -44,6 +91,7 @@ class AppConstants {
     'TLSEMICON': 0xFF6B21A8,
     'RKLB': 0xFFE91E63,
     'MSFT': 0xFF00A4EF,
+    'BTCUSD': 0xFFFF9800,
     'AAPL': 0xFFA2AAAD,
     'NVDA': 0xFF76B900,
     'AMZN': 0xFFFF9900,

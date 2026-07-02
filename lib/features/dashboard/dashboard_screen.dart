@@ -21,6 +21,7 @@ class DashboardScreen extends ConsumerWidget {
 
     return AppScaffold(
       title: AppConstants.appName,
+      trialPageName: 'Dashboard',
       body: summaryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('เกิดข้อผิดพลาด: $e')),
