@@ -130,7 +130,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
               value: _darkMode,
-              activeThumbColor: AppColors.accent,
+              thumbColor: WidgetStateProperty.resolveWith(
+                (states) =>
+                    states.contains(WidgetState.selected) ? AppColors.accent : null,
+              ),
               onChanged: (v) => setState(() => _darkMode = v),
             ),
           ),
