@@ -1,0 +1,27 @@
+name: port_invest
+description: "My Wealth - Personal portfolio tracker for long-term investing."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.8.1
+  hive_flutter: ^1.1.0
+  dio: ^5.8.0+1
+  fl_chart: ^0.70.2
+  intl: ^0.20.2
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
