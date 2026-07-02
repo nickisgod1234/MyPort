@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'config/secrets.dart';
+import 'core/constants/app_constants.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/services/storage_service.dart';
@@ -37,7 +38,7 @@ class MyWealthApp extends ConsumerWidget {
     final darkMode = ref.watch(storageServiceProvider).darkMode;
 
     return MaterialApp.router(
-      title: 'My Wealth',
+      title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
       darkTheme: AppTheme.dark,

@@ -1,13 +1,13 @@
 class AppConstants {
-  static const appName = 'My Wealth';
+  static const appName = 'ลงทุนครอบครัว';
   static const portfolioName = 'เกษียณสำราญ';
   static const fmpBaseUrl = 'https://financialmodelingprep.com/stable';
   static const usdThbRate = 33.28;
   static const portfolioDataVersion = 2;
 
-  static const defaultTargetAmount = 10000000.0;
+  static const defaultTargetAmount = 7000000.0;
   static const defaultCurrentAge = 36;
-  static const defaultRetirementAge = 60;
+  static const defaultRetirementAge = 61;
   static const defaultMonthlyBudget = 10000.0;
 
   /// สินทรัพย์สำหรับหน้าคำนวณ DCA (ตาม spreadsheet)

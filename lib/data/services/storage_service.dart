@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -12,6 +14,8 @@ class StorageService {
   static const _keyRetirementAge = 'retirement_age';
   static const _keyTargetAmount = 'target_amount';
   static const _keyMonthlyBudget = 'monthly_budget';
+  static const _keyDcaAssetValues = 'dca_asset_values';
+  static const _keyDcaAssetPreviousValues = 'dca_asset_previous_values';
   static const _keyDarkMode = 'dark_mode';
   static const _keyPortfolioVersion = 'portfolio_data_version';
 
@@ -61,6 +65,50 @@ class StorageService {
       (_settings.get(_keyMonthlyBudget) as num?)?.toDouble() ??
       AppConstants.defaultMonthlyBudget;
   Future<void> setMonthlyBudget(double value) => _settings.put(_keyMonthlyBudget, value);
+
+  Map<String, double> getDcaAssetValues() => _readDcaValueMap(_keyDcaAssetValues);
+
+  Map<String, double> getDcaAssetPreviousValues() =>
+      _readDcaValueMap(_keyDcaAssetPreviousValues);
+
+  Map<String, double> _readDcaValueMap(String key) {
+    final raw = _settings.get(key);
+    if (raw == null) return {};
+
+    if (raw is String) {
+      try {
+        final decoded = jsonDecode(raw) as Map<String, dynamic>;
+        return decoded.map(
+          (k, value) => MapEntry(k, (value as num).toDouble()),
+        );
+      } catch (_) {
+        return {};
+      }
+    }
+
+    if (raw is Map) {
+      return Map<String, double>.fromEntries(
+        raw.entries.map(
+          (entry) => MapEntry(
+            entry.key.toString(),
+            (entry.value as num).toDouble(),
+          ),
+        ),
+      );
+    }
+
+    return {};
+  }
+
+  Future<void> saveDcaAssetValues(Map<String, double> values) async {
+    await _settings.put(_keyDcaAssetValues, jsonEncode(values));
+    await _settings.flush();
+  }
+
+  Future<void> saveDcaAssetPreviousValues(Map<String, double> values) async {
+    await _settings.put(_keyDcaAssetPreviousValues, jsonEncode(values));
+    await _settings.flush();
+  }
 
   bool get darkMode => _settings.get(_keyDarkMode, defaultValue: true) as bool;
   Future<void> setDarkMode(bool value) => _settings.put(_keyDarkMode, value);
