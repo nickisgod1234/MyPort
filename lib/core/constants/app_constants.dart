@@ -15,44 +15,45 @@ class AppConstants {
     {
       'symbol': 'VT',
       'name': 'VT',
-      'target': 0.45,
+      'target': 0.4182,
       'defaultValue': 4521.28,
     },
     {
       'symbol': 'KKP_NDQ',
       'name': 'KKP NDQ100-UH-E',
-      'target': 0.25,
+      'target': 0.2455,
       'defaultValue': 2500.0,
     },
     {
       'symbol': 'TLSEMICON',
       'name': 'TLSEMICON-UH',
-      'target': 0.10,
+      'target': 0.0909,
       'defaultValue': 1000.0,
     },
     {
       'symbol': 'MTS_GOLD',
-      'name': 'MTS Gold',
-      'target': 0.10,
+      'name': 'Gold',
+      'target': 0.0909,
       'defaultValue': 990.9,
     },
     {
       'symbol': 'MSFT',
       'name': 'Microsoft',
-      'target': 0.05,
+      'target': 0.0455,
       'defaultValue': 500.0,
     },
-    {
-      'symbol': 'BTCUSD',
-      'name': 'Bitcoin',
-      'target': 0.03,
-      'defaultValue': 300.0,
-    },
+   
     {
       'symbol': 'RKLB',
       'name': 'Rocket Lab',
-      'target': 0.02,
+      'target': 0.0455,
       'defaultValue': 200.0,
+    },
+     {
+      'symbol': 'BTCUSD',
+      'name': 'Bitcoin',
+      'target': 0.0636,
+      'defaultValue': 300.0,
     },
   ];
 
@@ -60,18 +61,19 @@ class AppConstants {
   static const watchlistSymbols = ['AAPL', 'NVDA', 'AMZN', 'V', 'SPY'];
 
   static const targetAllocations = <String, double>{
-    'VT': 0.4491,
-    'KKP_NDQ': 0.2499,
-    'MTS_GOLD': 0.1008,
-    'TLSEMICON': 0.10,
-    'RKLB': 0.0509,
-    'MSFT': 0.0493,
+    'VT': 0.4182,
+    'KKP_NDQ': 0.2455,
+    'TLSEMICON': 0.0909,
+    'MTS_GOLD': 0.0909,
+    'MSFT': 0.0455,
+    'RKLB': 0.0455,
+    'BTCUSD': 0.0636,
   };
 
   static const assetDisplayNames = <String, String>{
     'VT': 'VT',
     'KKP_NDQ': 'KKP NDQ100-UH-E',
-    'MTS_GOLD': 'MTS-GOLD',
+    'MTS_GOLD': 'Gold',
     'TLSEMICON': 'TLSEMICON-UH',
     'RKLB': 'RKLB',
     'MSFT': 'MSFT',

@@ -60,9 +60,9 @@ class MainShell extends StatelessWidget {
               label: 'Portfolio',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.analytics_outlined),
-              activeIcon: Icon(Icons.analytics),
-              label: 'Analysis',
+              icon: Icon(Icons.beach_access_outlined),
+              activeIcon: Icon(Icons.beach_access),
+              label: 'เกษียณ',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.settings_outlined),
