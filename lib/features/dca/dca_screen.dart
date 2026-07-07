@@ -109,6 +109,8 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
 
   Future<void> _commitNow() async {
     await _saveValues();
+    ref.invalidate(portfolioSummaryProvider);
+    ref.invalidate(retirementProjectionProvider);
     if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _activeField = null);

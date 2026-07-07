@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../models/real_withdrawal_models.dart';
 import '../models/withdrawal_models.dart';
 
 class WithdrawalSimulator {
@@ -10,11 +11,83 @@ class WithdrawalSimulator {
     return (portfolio * rate) / 12;
   }
 
+  static double modeDefaultMonthly(
+    double portfolio,
+    WithdrawalMode mode, {
+    double annualReturn = 0.07,
+    RealWithdrawalSnapshot? real,
+  }) {
+    if (real != null) {
+      return switch (mode) {
+        WithdrawalMode.percentage || WithdrawalMode.fixed =>
+          real.recommendedMonthly4Pct,
+        WithdrawalMode.profitOnly => real.profitOnlyMaxMonthly,
+        WithdrawalMode.dividendOnly => real.dividendOnlyMaxMonthly,
+      };
+    }
+
+    return switch (mode) {
+      WithdrawalMode.percentage || WithdrawalMode.fixed =>
+        recommendedMonthly(portfolio),
+      WithdrawalMode.profitOnly => (portfolio * annualReturn) / 12,
+      WithdrawalMode.dividendOnly => (portfolio * _dividendYield) / 12,
+    };
+  }
+
+  static (double min, double max) modeSliderRange(
+    double portfolio,
+    WithdrawalMode mode, {
+    double annualReturn = 0.07,
+    RealWithdrawalSnapshot? real,
+  }) {
+    if (portfolio <= 0) return (1000, 5000);
+
+    if (real != null) {
+      final range = switch (mode) {
+        WithdrawalMode.percentage || WithdrawalMode.fixed => (
+            math.max(1000, real.recommendedMonthly4Pct * 0.4),
+            math.max(20000, real.recommendedMonthly4Pct * 2.5),
+          ),
+        WithdrawalMode.profitOnly => real.profitOnlyMaxMonthly > 0
+            ? (
+                real.profitOnlyMaxMonthly * 0.3,
+                real.profitOnlyMaxMonthly,
+              )
+            : (0.0, 0.0),
+        WithdrawalMode.dividendOnly => (
+            real.dividendOnlyMaxMonthly * 0.3,
+            math.max(1000, math.max(real.dividendOnlyMaxMonthly, 1000)),
+          ),
+      };
+      return _normalizeSliderRange(range.$1.toDouble(), range.$2.toDouble());
+    }
+
+    final range = switch (mode) {
+      WithdrawalMode.percentage || WithdrawalMode.fixed => (
+          math.max(1000, recommendedMonthly(portfolio) * 0.4),
+          math.max(20000, recommendedMonthly(portfolio) * 2.5),
+        ),
+      WithdrawalMode.profitOnly => () {
+        final maxMonthly = (portfolio * annualReturn) / 12;
+        return (maxMonthly * 0.3, maxMonthly);
+      }(),
+      WithdrawalMode.dividendOnly => () {
+        final maxMonthly = (portfolio * _dividendYield) / 12;
+        return (maxMonthly * 0.3, maxMonthly);
+      }(),
+    };
+
+    return _normalizeSliderRange(range.$1.toDouble(), range.$2.toDouble());
+  }
+
+  static (double min, double max) _normalizeSliderRange(double min, double max) {
+    if (max <= 0) return (0, 1000);
+    if (min >= max) return (max * 0.5, max);
+    return (min, max);
+  }
+
   static WithdrawalSimulation simulate(WithdrawalPlan plan) {
     final recommended = recommendedMonthly(plan.portfolio);
-    final withdrawalRatePercent = plan.portfolio > 0
-        ? (plan.monthlyWithdrawal * 12 / plan.portfolio) * 100.0
-        : 0.0;
 
     var balance = plan.portfolio;
     var age = plan.currentAge;
@@ -30,6 +103,8 @@ class WithdrawalSimulator {
 
     var depletedAge = plan.lifeExpectancyAge + 5;
     final maxAge = plan.lifeExpectancyAge + 10;
+    double? projectedFirstYearWithdrawal;
+    var principalRemaining = plan.principal;
 
     for (var year = 0; age <= maxAge && balance > 0; year++) {
       if (plan.simulateMarketCrash && age == plan.currentAge + 3) {
@@ -55,10 +130,13 @@ class WithdrawalSimulator {
 
       balance *= (1 + plan.annualReturn);
 
-      final annualWithdrawal = _annualWithdrawal(plan, balance, year);
+      final annualWithdrawal = plan.mode == WithdrawalMode.profitOnly
+          ? _profitOnlyWithdrawal(plan, balance, principalRemaining, year)
+          : _annualWithdrawal(plan, balance, year);
       final actualWithdrawal = math.min(annualWithdrawal, balance);
       balance -= actualWithdrawal;
       cumulativeWithdrawn += actualWithdrawal;
+      projectedFirstYearWithdrawal ??= actualWithdrawal;
 
       String? event;
       if (plan.simulateMarketCrash && age == plan.currentAge + 5) {
@@ -95,6 +173,15 @@ class WithdrawalSimulator {
     }
 
     final lastsUntilAge = depletedAge;
+    final profit = math.max(0, plan.portfolio - plan.principal).toDouble();
+    final sources = _withdrawalSources(plan.monthlyWithdrawal);
+    final cashReserveMonths = plan.monthlyWithdrawal > 0
+        ? (plan.cashReserve / plan.monthlyWithdrawal).toDouble()
+        : 0.0;
+    final annualProfitEstimate = plan.portfolio * plan.annualReturn;
+    final withdrawalRatePercent = plan.portfolio > 0
+        ? ((projectedFirstYearWithdrawal ?? 0) / plan.portfolio) * 100.0
+        : 0.0;
     final successProbability = _successProbability(
       lastsUntilAge: lastsUntilAge,
       targetAge: plan.lifeExpectancyAge,
@@ -102,12 +189,6 @@ class WithdrawalSimulator {
     );
     final safety = _safetyLevel(lastsUntilAge, plan.lifeExpectancyAge);
     final starRating = _starRating(successProbability);
-    final profit = math.max(0, plan.portfolio - plan.principal).toDouble();
-    final sources = _withdrawalSources(plan.monthlyWithdrawal);
-    final cashReserveMonths = plan.monthlyWithdrawal > 0
-        ? (plan.cashReserve / plan.monthlyWithdrawal).toDouble()
-        : 0.0;
-    final annualProfitEstimate = plan.portfolio * plan.annualReturn;
 
     return WithdrawalSimulation(
       lastsUntilAge: lastsUntilAge,
@@ -120,8 +201,10 @@ class WithdrawalSimulator {
       chartPoints: chartPoints,
       principal: plan.principal,
       profit: profit,
-      totalWithdrawn: cumulativeWithdrawn,
-      remaining: math.max(0, plan.portfolio - cumulativeWithdrawn).toDouble(),
+      totalWithdrawn: 0,
+      remaining: plan.portfolio,
+      projectedFirstYearWithdrawal: projectedFirstYearWithdrawal ?? 0,
+      simulationStartAge: plan.currentAge,
       sources: sources,
       cashReserveMonths: cashReserveMonths,
       aiInsight: _aiInsight(plan, safety, lastsUntilAge),
@@ -129,9 +212,24 @@ class WithdrawalSimulator {
     );
   }
 
+  static double _profitOnlyWithdrawal(
+    WithdrawalPlan plan,
+    double balance,
+    double principalRemaining,
+    int year,
+  ) {
+    final inflatedMonthly =
+        plan.monthlyWithdrawal * math.pow(1 + plan.inflation, year).toDouble();
+    final gainAvailable = math.max(0, balance - principalRemaining);
+    return math.min(inflatedMonthly * 12, gainAvailable).toDouble();
+  }
+
   static double _annualWithdrawal(WithdrawalPlan plan, double balance, int year) {
     final inflatedMonthly =
         plan.monthlyWithdrawal * math.pow(1 + plan.inflation, year).toDouble();
+    final dividendYield = plan.realDividendAnnual > 0 && plan.portfolio > 0
+        ? plan.realDividendAnnual / plan.portfolio
+        : _dividendYield;
 
     switch (plan.mode) {
       case WithdrawalMode.percentage:
@@ -139,10 +237,9 @@ class WithdrawalSimulator {
       case WithdrawalMode.fixed:
         return inflatedMonthly * 12;
       case WithdrawalMode.profitOnly:
-        final profit = balance * plan.annualReturn;
-        return math.min(inflatedMonthly * 12, profit).toDouble();
+        return inflatedMonthly * 12;
       case WithdrawalMode.dividendOnly:
-        return math.min(balance * _dividendYield, inflatedMonthly * 12).toDouble();
+        return math.min(balance * dividendYield, inflatedMonthly * 12).toDouble();
     }
   }
 

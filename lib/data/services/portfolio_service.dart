@@ -12,104 +12,84 @@ class PortfolioService {
   final FmpApiService _fmp;
   final StorageService _storage;
 
-  static const _rate = AppConstants.usdThbRate;
-
   Future<PortfolioSummary> getSummary() async {
-    final holdings = _storage.getHoldings();
-    final fmpSymbols = holdings
-        .map((h) => h.quoteSymbol)
-        .whereType<String>()
-        .toSet()
-        .toList();
-    final quotes = await _fmp.fetchQuotes(fmpSymbols);
-    final quoteMap = {for (final q in quotes) q.symbol: q};
+    return _buildSummaryFromDca();
+  }
 
-    final values = <HoldingValue>[];
+  PortfolioSummary _buildSummaryFromDca() {
+    final savedValues = _storage.getDcaAssetValues();
+    final previousValues = _storage.getDcaAssetPreviousValues();
+
+    final holdings = <HoldingValue>[];
     var totalValueThb = 0.0;
     var totalInvestedThb = 0.0;
 
-    for (final holding in holdings) {
-      final hv = _valueForHolding(holding, quoteMap);
-      totalValueThb += hv.marketValueThb;
-      totalInvestedThb += _investedThb(holding, hv);
-      values.add(hv);
+    for (final asset in AppConstants.dcaCalculatorAssets) {
+      final symbol = asset['symbol'] as String;
+      final name = asset['name'] as String;
+      final defaultValue = (asset['defaultValue'] as num).toDouble();
+      final target = (asset['target'] as num).toDouble();
+
+      final valueThb = savedValues[symbol] ?? defaultValue;
+      final previous = previousValues[symbol];
+      // ไม่มีค่า 'ก่อนหน้า' = ถือว่าทุนเท่ามูลค่าปัจจุบัน (กำไร 0)
+      final costThb = previous ?? valueThb;
+      final profitThb = valueThb - costThb;
+      final returnPct = costThb > 0 ? (profitThb / costThb) * 100 : 0.0;
+
+      totalValueThb += valueThb;
+      totalInvestedThb += costThb;
+
+      holdings.add(
+        HoldingValue(
+          holding: Holding(
+            symbol: symbol,
+            displayName: name,
+            shares: 1,
+            averageCost: costThb,
+            targetAllocation: target,
+            isThaiFund: true,
+            fixedValueThb: valueThb,
+            fixedCostThb: costThb,
+          ),
+          currentPrice: valueThb,
+          marketValueThb: valueThb,
+          marketValueUsd: null,
+          profitThb: profitThb,
+          returnPercent: returnPct,
+          allocation: 0,
+          isLive: false,
+        ),
+      );
     }
 
-    for (var i = 0; i < values.length; i++) {
-      final v = values[i];
-      values[i] = HoldingValue(
-        holding: v.holding,
-        currentPrice: v.currentPrice,
-        marketValueThb: v.marketValueThb,
-        marketValueUsd: v.marketValueUsd,
-        profitThb: v.profitThb,
-        returnPercent: v.returnPercent,
-        allocation: totalValueThb > 0 ? v.marketValueThb / totalValueThb : 0,
-        isLive: v.isLive,
+    for (var i = 0; i < holdings.length; i++) {
+      final hv = holdings[i];
+      holdings[i] = HoldingValue(
+        holding: hv.holding,
+        currentPrice: hv.currentPrice,
+        marketValueThb: hv.marketValueThb,
+        marketValueUsd: hv.marketValueUsd,
+        profitThb: hv.profitThb,
+        returnPercent: hv.returnPercent,
+        allocation:
+            totalValueThb > 0 ? hv.marketValueThb / totalValueThb : 0,
+        isLive: hv.isLive,
       );
     }
 
     final totalProfitThb = totalValueThb - totalInvestedThb;
-    final totalReturn =
-        totalInvestedThb > 0 ? (totalProfitThb / totalInvestedThb) * 100 : 0.0;
+    final totalReturn = totalInvestedThb > 0
+        ? (totalProfitThb / totalInvestedThb) * 100
+        : 0.0;
 
     return PortfolioSummary(
       totalValueThb: totalValueThb,
       totalInvestedThb: totalInvestedThb,
       totalProfitThb: totalProfitThb,
       totalReturnPercent: totalReturn,
-      holdings: values,
+      holdings: holdings,
     );
-  }
-
-  HoldingValue _valueForHolding(
-    Holding holding,
-    Map<String, Quote> quoteMap,
-  ) {
-    if (holding.isThaiFund) {
-      final valueThb = holding.fixedValueThb ?? holding.shares * holding.averageCost;
-      final costThb = holding.fixedCostThb ?? holding.shares * holding.averageCost;
-      final profit = valueThb - costThb;
-      final returnPct = costThb > 0 ? (profit / costThb) * 100 : 0.0;
-      return HoldingValue(
-        holding: holding,
-        currentPrice: holding.averageCost,
-        marketValueThb: valueThb,
-        marketValueUsd: null,
-        profitThb: profit,
-        returnPercent: returnPct,
-        allocation: 0,
-        isLive: false,
-      );
-    }
-
-    final fmpSym = holding.quoteSymbol!;
-    final quote = quoteMap[fmpSym];
-    final price = quote?.price ?? holding.averageCost;
-    final valueUsd = holding.shares * price;
-    final valueThb = valueUsd * _rate;
-    final costUsd = holding.investedUsd;
-    final costThb = costUsd * _rate;
-    final profitThb = valueThb - costThb;
-    final returnPct = costUsd > 0 ? ((valueUsd - costUsd) / costUsd) * 100 : 0.0;
-
-    return HoldingValue(
-      holding: holding,
-      currentPrice: price,
-      marketValueThb: valueThb,
-      marketValueUsd: valueUsd,
-      profitThb: profitThb,
-      returnPercent: returnPct,
-      allocation: 0,
-      isLive: quote?.isLive ?? false,
-    );
-  }
-
-  double _investedThb(Holding holding, HoldingValue hv) {
-    if (holding.isThaiFund) {
-      return holding.fixedCostThb ?? holding.shares * holding.averageCost;
-    }
-    return holding.investedUsd * _rate;
   }
 
   List<DcaAllocation> calculateDca(double monthlyBudget) {
@@ -231,24 +211,18 @@ class PortfolioService {
       _fmp.fetchQuotes(AppConstants.watchlistSymbols);
 
   Future<List<NewsItem>> getPortfolioNews() async {
-    final holdings = _storage.getHoldings();
-    final symbols = holdings
-        .map((h) => h.quoteSymbol)
-        .whereType<String>()
+    final symbols = AppConstants.dcaCalculatorAssets
+        .map((a) => a['symbol'] as String)
+        .where((s) => !const {'KKP_NDQ', 'TLSEMICON', 'MTS_GOLD'}.contains(s))
+        .map((s) => switch (s) {
+              'BTCUSD' => 'BTCUSD',
+              _ => s,
+            })
         .toList();
     return _fmp.fetchNews(symbols);
   }
 
   Future<List<Map<String, dynamic>>> getHistorical(String symbol, int days) {
-    final holding = _storage.getHoldings().where((h) => h.symbol == symbol).firstOrNull;
-    final fmpSym = holding?.quoteSymbol ?? symbol;
-    return _fmp.fetchHistorical(fmpSym, days: days);
-  }
-}
-
-extension _FirstOrNull<E> on Iterable<E> {
-  E? get firstOrNull {
-    final it = iterator;
-    return it.moveNext() ? it.current : null;
+    return _fmp.fetchHistorical(symbol, days: days);
   }
 }

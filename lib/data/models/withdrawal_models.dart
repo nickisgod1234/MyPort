@@ -24,6 +24,7 @@ class WithdrawalPlan {
     required this.mode,
     this.withdrawalRate = 0.04,
     this.simulateMarketCrash = false,
+    this.realDividendAnnual = 0,
   });
 
   final double portfolio;
@@ -37,6 +38,7 @@ class WithdrawalPlan {
   final WithdrawalMode mode;
   final double withdrawalRate;
   final bool simulateMarketCrash;
+  final double realDividendAnnual;
 }
 
 class WithdrawalSourceRecommendation {
@@ -91,6 +93,8 @@ class WithdrawalSimulation {
     required this.profit,
     required this.totalWithdrawn,
     required this.remaining,
+    required this.projectedFirstYearWithdrawal,
+    required this.simulationStartAge,
     required this.sources,
     required this.cashReserveMonths,
     required this.aiInsight,
@@ -109,6 +113,8 @@ class WithdrawalSimulation {
   final double profit;
   final double totalWithdrawn;
   final double remaining;
+  final double projectedFirstYearWithdrawal;
+  final int simulationStartAge;
   final List<WithdrawalSourceRecommendation> sources;
   final double cashReserveMonths;
   final String? aiInsight;
