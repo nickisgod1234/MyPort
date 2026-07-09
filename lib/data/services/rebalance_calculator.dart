@@ -55,6 +55,8 @@ class RebalanceCalculatorInput {
 
 class RebalanceCalculator {
   static const tolerancePercent = 1.0;
+  /// ถ้าสัดส่วนปัจจุบันเบี่ยงจากเป้าไม่เกิน ±5% ใช้ DCA จำนวนคงที่ (งบ × เป้า%)
+  static const fixedDcaTolerancePercent = 5.0;
 
   static RebalancePlan calculate({
     required List<RebalanceCalculatorInput> assets,
@@ -90,18 +92,25 @@ class RebalanceCalculator {
       );
     }
 
-  final sumIdeal = rawBuys.fold(0.0, (a, b) => a + b);
-    final buyAmounts = <double>[];
+    final sumIdeal = rawBuys.fold(0.0, (a, b) => a + b);
+    final rebalanceBuys = <double>[];
 
     if (sumIdeal > 0) {
       for (final ideal in rawBuys) {
-        buyAmounts.add(monthlyBudget * (ideal / sumIdeal));
+        rebalanceBuys.add(monthlyBudget * (ideal / sumIdeal));
       }
     } else {
       for (final asset in assets) {
-        buyAmounts.add(monthlyBudget * asset.targetPercent);
+        rebalanceBuys.add(monthlyBudget * asset.targetPercent);
       }
     }
+
+    final buyAmounts = _mergeFixedAndRebalanceBuys(
+      assets: assets,
+      rows: rows,
+      monthlyBudget: monthlyBudget,
+      rebalanceBuys: rebalanceBuys,
+    );
 
     final adjustedRows = <RebalanceRow>[];
     for (var i = 0; i < rows.length; i++) {
@@ -129,6 +138,52 @@ class RebalanceCalculator {
       totalAfterInvest: newTotal,
       totalBuy: totalBuy,
     );
+  }
+
+  static List<double> _mergeFixedAndRebalanceBuys({
+    required List<RebalanceCalculatorInput> assets,
+    required List<RebalanceRow> rows,
+    required double monthlyBudget,
+    required List<double> rebalanceBuys,
+  }) {
+    final buyAmounts = List<double>.filled(assets.length, 0);
+    final rebalanceIndices = <int>[];
+    var fixedSum = 0.0;
+    var rebalanceIdealSum = 0.0;
+
+    for (var i = 0; i < assets.length; i++) {
+      if (rows[i].differencePercent.abs() <= fixedDcaTolerancePercent) {
+        final fixedBuy = monthlyBudget * assets[i].targetPercent;
+        buyAmounts[i] = fixedBuy;
+        fixedSum += fixedBuy;
+      } else {
+        rebalanceIndices.add(i);
+        rebalanceIdealSum += rebalanceBuys[i];
+      }
+    }
+
+    if (rebalanceIndices.isEmpty) {
+      return buyAmounts;
+    }
+
+    final remainingBudget = (monthlyBudget - fixedSum).clamp(0.0, double.infinity);
+    if (rebalanceIdealSum <= 0) {
+      final rebalanceWeight =
+          rebalanceIndices.fold(0.0, (sum, i) => sum + assets[i].targetPercent);
+      for (final i in rebalanceIndices) {
+        final weight = rebalanceWeight > 0
+            ? assets[i].targetPercent / rebalanceWeight
+            : 1 / rebalanceIndices.length;
+        buyAmounts[i] = remainingBudget * weight;
+      }
+      return buyAmounts;
+    }
+
+    for (final i in rebalanceIndices) {
+      buyAmounts[i] = remainingBudget * (rebalanceBuys[i] / rebalanceIdealSum);
+    }
+
+    return buyAmounts;
   }
 
   static RebalanceRowStatus _status(double diffPercent, double idealBuy) {

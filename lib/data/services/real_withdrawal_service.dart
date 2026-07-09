@@ -9,9 +9,8 @@ class RealWithdrawalService {
   static const _dividendYieldBySymbol = <String, double>{
     'VT': 0.015,
     'KKP_NDQ': 0.0,
-    'TLSEMICON': 0.0,
+    'SMH': 0.008,
     'MTS_GOLD': 0.0,
-    'MSFT': 0.008,
     'RKLB': 0.0,
     'BTCUSD': 0.0,
   };

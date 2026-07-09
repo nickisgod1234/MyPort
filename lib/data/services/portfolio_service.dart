@@ -213,7 +213,7 @@ class PortfolioService {
   Future<List<NewsItem>> getPortfolioNews() async {
     final symbols = AppConstants.dcaCalculatorAssets
         .map((a) => a['symbol'] as String)
-        .where((s) => !const {'KKP_NDQ', 'TLSEMICON', 'MTS_GOLD'}.contains(s))
+        .where((s) => !const {'KKP_NDQ', 'MTS_GOLD'}.contains(s))
         .map((s) => switch (s) {
               'BTCUSD' => 'BTCUSD',
               _ => s,
