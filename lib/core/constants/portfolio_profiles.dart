@@ -66,7 +66,7 @@ class PortfolioProfiles {
     ],
   );
 
-  /// พอร์ตแฟน — เน้น growth US + ปันผล + ทอง + ไทย
+  /// พอร์ตแฟน — growth US 70% + ปันผล 20% + ทอง 10%
   static const partner = PortfolioProfile(
     id: partnerId,
     name: 'แฟน',
@@ -88,13 +88,7 @@ class PortfolioProfiles {
       {
         'symbol': 'SCHD',
         'name': 'Schwab US Dividend Equity (SCHD)',
-        'target': 0.10,
-        'defaultValue': 0.0,
-      },
-      {
-        'symbol': 'TLSEMICON',
-        'name': 'TLSEMICON-UH',
-        'target': 0.10,
+        'target': 0.20,
         'defaultValue': 0.0,
       },
       {
