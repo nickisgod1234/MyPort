@@ -5,7 +5,14 @@ import '../models/withdrawal_models.dart';
 
 class WithdrawalSimulator {
   static const _dividendYield = 0.04;
-  static const _growthAssets = {'VT', 'SMH', 'BTCUSD', 'RKLB', 'KKP_NDQ'};
+  static const _growthAssets = {
+    'VT',
+    'SMH',
+    'SCHG',
+    'BTCUSD',
+    'RKLB',
+    'KKP_NDQ',
+  };
 
   static double recommendedMonthly(double portfolio, {double rate = 0.04}) {
     return (portfolio * rate) / 12;

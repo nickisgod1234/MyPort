@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/constants/portfolio_profiles.dart';
 import '../models/portfolio_models.dart';
 import '../models/quote.dart';
 import 'fmp_api_service.dart';
@@ -17,14 +18,15 @@ class PortfolioService {
   }
 
   PortfolioSummary _buildSummaryFromDca() {
-    final savedValues = _storage.getDcaAssetValues();
-    final previousValues = _storage.getDcaAssetPreviousValues();
+    final profile = PortfolioProfiles.byId(_storage.activeProfileId);
+    final savedValues = _storage.getDcaAssetValues(profile.id);
+    final previousValues = _storage.getDcaAssetPreviousValues(profile.id);
 
     final holdings = <HoldingValue>[];
     var totalValueThb = 0.0;
     var totalInvestedThb = 0.0;
 
-    for (final asset in AppConstants.dcaCalculatorAssets) {
+    for (final asset in profile.assets) {
       final symbol = asset['symbol'] as String;
       final name = asset['name'] as String;
       final defaultValue = (asset['defaultValue'] as num).toDouble();
@@ -211,9 +213,10 @@ class PortfolioService {
       _fmp.fetchQuotes(AppConstants.watchlistSymbols);
 
   Future<List<NewsItem>> getPortfolioNews() async {
-    final symbols = AppConstants.dcaCalculatorAssets
+    final profile = PortfolioProfiles.byId(_storage.activeProfileId);
+    final symbols = profile.assets
         .map((a) => a['symbol'] as String)
-        .where((s) => !const {'KKP_NDQ', 'MTS_GOLD'}.contains(s))
+        .where((s) => !const {'KKP_NDQ', 'TLSEMICON', 'MTS_GOLD'}.contains(s))
         .map((s) => switch (s) {
               'BTCUSD' => 'BTCUSD',
               _ => s,

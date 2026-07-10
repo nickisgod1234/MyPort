@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/constants/portfolio_profiles.dart';
 import '../models/portfolio_models.dart';
 
 class StorageService {
@@ -18,6 +19,7 @@ class StorageService {
   static const _keyDcaAssetPreviousValues = 'dca_asset_previous_values';
   static const _keyDarkMode = 'dark_mode';
   static const _keyPortfolioVersion = 'portfolio_data_version';
+  static const _keyActiveProfile = 'active_profile_id';
 
   late Box<dynamic> _settings;
   late Box<dynamic> _holdings;
@@ -61,15 +63,79 @@ class StorageService {
       AppConstants.defaultTargetAmount;
   Future<void> setTargetAmount(double value) => _settings.put(_keyTargetAmount, value);
 
-  double get monthlyBudget =>
-      (_settings.get(_keyMonthlyBudget) as num?)?.toDouble() ??
-      AppConstants.defaultMonthlyBudget;
-  Future<void> setMonthlyBudget(double value) => _settings.put(_keyMonthlyBudget, value);
+  Future<void> setMonthlyBudget(double value, {String? profileId}) =>
+      _settings.put(_budgetKey(profileId), value);
 
-  Map<String, double> getDcaAssetValues() => _readDcaValueMap(_keyDcaAssetValues);
+  String get activeProfileId => _settings.get(
+        _keyActiveProfile,
+        defaultValue: PortfolioProfiles.retirementId,
+      ) as String;
 
-  Map<String, double> getDcaAssetPreviousValues() =>
-      _readDcaValueMap(_keyDcaAssetPreviousValues);
+  Future<void> setActiveProfileId(String value) =>
+      _settings.put(_keyActiveProfile, value);
+
+  Map<String, double> getDcaAssetValues([String? profileId]) =>
+      _readDcaValueMap(_dcaValuesKey(profileId));
+
+  Map<String, double> getDcaAssetPreviousValues([String? profileId]) =>
+      _readDcaValueMap(_dcaPreviousValuesKey(profileId));
+
+  String _scopedKey(String base, String profileId) {
+    if (profileId == PortfolioProfiles.retirementId) return base;
+    return '${base}_$profileId';
+  }
+
+  String _budgetKey(String? profileId) =>
+      _scopedKey(_keyMonthlyBudget, profileId ?? activeProfileId);
+
+  String _dcaValuesKey(String? profileId) {
+    final id = profileId ?? activeProfileId;
+    if (id == PortfolioProfiles.retirementId) {
+      final legacy = _readDcaValueMap(_keyDcaAssetValues);
+      if (legacy.isNotEmpty) return _keyDcaAssetValues;
+      return _scopedKey(_keyDcaAssetValues, id);
+    }
+    return _scopedKey(_keyDcaAssetValues, id);
+  }
+
+  String _dcaPreviousValuesKey(String? profileId) {
+    final id = profileId ?? activeProfileId;
+    if (id == PortfolioProfiles.retirementId) {
+      final legacy = _readDcaValueMap(_keyDcaAssetPreviousValues);
+      if (legacy.isNotEmpty) return _keyDcaAssetPreviousValues;
+      return _scopedKey(_keyDcaAssetPreviousValues, id);
+    }
+    return _scopedKey(_keyDcaAssetPreviousValues, id);
+  }
+
+  double get monthlyBudget => getMonthlyBudget();
+
+  double getMonthlyBudget([String? profileId]) {
+    final id = profileId ?? activeProfileId;
+    final scoped = (_settings.get(_budgetKey(id)) as num?)?.toDouble();
+    if (scoped != null) return scoped;
+    if (id == PortfolioProfiles.retirementId) {
+      return (_settings.get(_keyMonthlyBudget) as num?)?.toDouble() ??
+          PortfolioProfiles.byId(id).defaultMonthlyBudget;
+    }
+    return PortfolioProfiles.byId(id).defaultMonthlyBudget;
+  }
+
+  Future<void> saveDcaAssetValues(
+    Map<String, double> values, {
+    String? profileId,
+  }) async {
+    await _settings.put(_dcaValuesKey(profileId), jsonEncode(values));
+    await _settings.flush();
+  }
+
+  Future<void> saveDcaAssetPreviousValues(
+    Map<String, double> values, {
+    String? profileId,
+  }) async {
+    await _settings.put(_dcaPreviousValuesKey(profileId), jsonEncode(values));
+    await _settings.flush();
+  }
 
   Map<String, double> _readDcaValueMap(String key) {
     final raw = _settings.get(key);
@@ -98,16 +164,6 @@ class StorageService {
     }
 
     return {};
-  }
-
-  Future<void> saveDcaAssetValues(Map<String, double> values) async {
-    await _settings.put(_keyDcaAssetValues, jsonEncode(values));
-    await _settings.flush();
-  }
-
-  Future<void> saveDcaAssetPreviousValues(Map<String, double> values) async {
-    await _settings.put(_keyDcaAssetPreviousValues, jsonEncode(values));
-    await _settings.flush();
   }
 
   bool get darkMode => _settings.get(_keyDarkMode, defaultValue: true) as bool;

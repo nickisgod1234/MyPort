@@ -163,6 +163,9 @@ class FmpApiService {
   Quote _mockQuote(String symbol) {
     const mockPrices = {
       'VT': 128.52,
+      'SMH': 285.0,
+      'SCHG': 26.5,
+      'SCHD': 27.8,
       'RKLB': 28.45,
       'MSFT': 378.73,
       'GCUSD': 4044.9,
@@ -174,6 +177,9 @@ class FmpApiService {
     };
     const mockChanges = {
       'VT': -0.10,
+      'SMH': 0.85,
+      'SCHG': 0.42,
+      'SCHD': 0.18,
       'RKLB': 1.98,
       'MSFT': -1.31,
       'GCUSD': 0.16,
@@ -200,6 +206,9 @@ class FmpApiService {
   List<Map<String, dynamic>> _mockHistorical(String symbol, int days) {
     const basePrices = {
       'VT': 128.52,
+      'SMH': 285.0,
+      'SCHG': 26.5,
+      'SCHD': 27.8,
       'RKLB': 28.45,
       'MSFT': 378.73,
       'GCUSD': 4044.9,

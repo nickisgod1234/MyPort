@@ -1,3 +1,5 @@
+import 'portfolio_profiles.dart';
+
 class AppConstants {
   static const appName = 'ลงทุนครอบครัว';
   static const portfolioName = 'เกษียณสำราญ';
@@ -10,47 +12,11 @@ class AppConstants {
   static const defaultRetirementAge = 61;
   static const defaultMonthlyBudget = 10000.0;
 
-  /// สินทรัพย์สำหรับหน้าคำนวณ DCA (ตาม spreadsheet)
-  static const dcaCalculatorAssets = <Map<String, dynamic>>[
-    {
-      'symbol': 'VT',
-      'name': 'Vanguard Total World Stock ETF (VT)',
-      'target': 4500 / 11000,
-      'defaultValue': 4500.0,
-    },
-    {
-      'symbol': 'KKP_NDQ',
-      'name': 'KKP NDQ100-UH-E',
-      'target': 2500 / 11000,
-      'defaultValue': 2500.0,
-    },
-    {
-      'symbol': 'SMH',
-      'name': 'VanEck Semiconductor ETF (SMH)',
-      'target': 1500 / 11000,
-      'defaultValue': 1500.0,
-    },
-    {
-      'symbol': 'MTS_GOLD',
-      'name': 'Gold',
-      'target': 1000 / 11000,
-      'defaultValue': 1000.0,
-    },
-    {
-      'symbol': 'BTCUSD',
-      'name': 'Bitcoin',
-      'target': 1000 / 11000,
-      'defaultValue': 1000.0,
-    },
-    {
-      'symbol': 'RKLB',
-      'name': 'Rocket Lab',
-      'target': 500 / 11000,
-      'defaultValue': 500.0,
-    },
-  ];
+  /// พอร์ตหลัก (เกษียณสำราญ) — ใช้กับ holdings เดิม
+  static List<Map<String, dynamic>> get dcaCalculatorAssets =>
+      PortfolioProfiles.retirement.assets;
 
-  static const marketWatchSymbols = ['VT', 'SMH', 'RKLB', 'GCUSD'];
+  static const marketWatchSymbols = ['VT', 'SMH', 'RKLB', 'GCUSD', 'SCHG', 'SCHD'];
   static const watchlistSymbols = ['AAPL', 'NVDA', 'AMZN', 'V', 'SPY'];
 
   static const targetAllocations = <String, double>{
@@ -66,6 +32,9 @@ class AppConstants {
     'VT': 'VT',
     'KKP_NDQ': 'KKP NDQ100-UH-E',
     'SMH': 'SMH',
+    'SCHG': 'SCHG',
+    'SCHD': 'SCHD',
+    'TLSEMICON': 'TLSEMICON-UH',
     'MTS_GOLD': 'Gold',
     'RKLB': 'RKLB',
     'BTCUSD': 'Bitcoin',
@@ -81,6 +50,9 @@ class AppConstants {
     'VT': 0xFF8B2332,
     'KKP_NDQ': 0xFF1E3A8A,
     'SMH': 0xFF6B21A8,
+    'SCHG': 0xFF0D9488,
+    'SCHD': 0xFF2563EB,
+    'TLSEMICON': 0xFF9333EA,
     'MTS_GOLD': 0xFFD4AF37,
     'RKLB': 0xFFE91E63,
     'BTCUSD': 0xFFFF9800,

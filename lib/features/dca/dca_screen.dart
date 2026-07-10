@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/constants/portfolio_profiles.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/portfolio_models.dart';
 import '../../data/services/rebalance_calculator.dart';
 import '../../data/services/storage_service.dart';
 import '../../providers/app_providers.dart';
+import '../../providers/portfolio_profile_providers.dart';
 import '../../shared/widgets/common_widgets.dart';
 
 class DcaScreen extends ConsumerStatefulWidget {
@@ -24,33 +26,69 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
   late final Map<String, TextEditingController> _valueControllers;
   late final Map<String, double> _previousValues;
   late Map<String, double> _committedValues;
+  late String _profileId;
   String? _activeField;
   RebalancePlan? _plan;
+
+  List<Map<String, dynamic>> get _assets =>
+      PortfolioProfiles.byId(_profileId).assets;
 
   @override
   void initState() {
     super.initState();
     _storage = ref.read(storageServiceProvider);
-    final savedValues = _storage.getDcaAssetValues();
-    _previousValues = Map<String, double>.from(
-      _storage.getDcaAssetPreviousValues(),
-    );
+    _budgetController = TextEditingController();
+    _valueControllers = {};
+    _previousValues = {};
+    _committedValues = {};
+    _bootstrapProfile(ref.read(activeProfileIdProvider));
+  }
+
+  void _bootstrapProfile(String profileId) {
+    _profileId = profileId;
+    final profile = PortfolioProfiles.byId(profileId);
+    final savedValues = _storage.getDcaAssetValues(profileId);
+    _previousValues
+      ..clear()
+      ..addAll(_storage.getDcaAssetPreviousValues(profileId));
     _committedValues = {
-      for (final asset in AppConstants.dcaCalculatorAssets)
+      for (final asset in profile.assets)
         asset['symbol'] as String: savedValues[asset['symbol'] as String] ??
             (asset['defaultValue'] as num).toDouble(),
     };
-    _budgetController = TextEditingController(
-      text: _storage.monthlyBudget.toStringAsFixed(0),
-    );
-    _valueControllers = {
-      for (final asset in AppConstants.dcaCalculatorAssets)
-        asset['symbol'] as String: TextEditingController(
-          text: _committedValues[asset['symbol'] as String]!
-              .toStringAsFixed(2),
+    _budgetController.text =
+        _storage.getMonthlyBudget(profileId).toStringAsFixed(0);
+    for (final controller in _valueControllers.values) {
+      controller.dispose();
+    }
+    _valueControllers
+      ..clear()
+      ..addEntries(
+        profile.assets.map(
+          (asset) {
+            final symbol = asset['symbol'] as String;
+            return MapEntry(
+              symbol,
+              TextEditingController(
+                text: _committedValues[symbol]!.toStringAsFixed(2),
+              ),
+            );
+          },
         ),
-    };
+      );
     _recalculate();
+  }
+
+  Future<void> _switchProfile(String profileId) async {
+    if (profileId == _profileId) return;
+    await _saveValues();
+    _bootstrapProfile(profileId);
+    await ref.read(activeProfileIdProvider.notifier).setProfile(profileId);
+    ref.invalidate(portfolioSummaryProvider);
+    ref.invalidate(retirementProjectionProvider);
+    if (mounted) {
+      setState(() => _activeField = null);
+    }
   }
 
   double? _previousValueFor(String symbol, num defaultValue) {
@@ -71,7 +109,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
 
   void _recalculate() {
     final budget = double.tryParse(_budgetController.text) ?? 10000;
-    final inputs = AppConstants.dcaCalculatorAssets.map((asset) {
+    final inputs = _assets.map((asset) {
       final symbol = asset['symbol'] as String;
       final value = double.tryParse(_valueControllers[symbol]!.text) ?? 0;
       return RebalanceCalculatorInput(
@@ -94,7 +132,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
     _recalculate();
     final budget = double.tryParse(_budgetController.text);
     if (budget != null) {
-      _storage.setMonthlyBudget(budget);
+      _storage.setMonthlyBudget(budget, profileId: _profileId);
     }
   }
 
@@ -122,7 +160,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
   Future<void> _saveValues() async {
     final budget = double.tryParse(_budgetController.text);
     if (budget != null) {
-      await _storage.setMonthlyBudget(budget);
+      await _storage.setMonthlyBudget(budget, profileId: _profileId);
     }
 
     final values = <String, double>{
@@ -143,13 +181,16 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
       }
 
       if (previousChanged) {
-        await _storage.saveDcaAssetPreviousValues(updatedPrevious);
+        await _storage.saveDcaAssetPreviousValues(
+          updatedPrevious,
+          profileId: _profileId,
+        );
         _previousValues
           ..clear()
           ..addAll(updatedPrevious);
       }
 
-      await _storage.saveDcaAssetValues(values);
+      await _storage.saveDcaAssetValues(values, profileId: _profileId);
       _committedValues = Map<String, double>.from(values);
 
       if (mounted) {
@@ -173,6 +214,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
   Widget build(BuildContext context) {
     final plan = _plan;
     final retirement = ref.watch(retirementProjectionProvider);
+    final activeProfile = PortfolioProfiles.byId(_profileId);
 
     return AppScaffold(
       title: AppConstants.appName,
@@ -181,6 +223,23 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _ProfileSwitcher(
+              selectedId: _profileId,
+              onSelected: _switchProfile,
+            ),
+            if (_profileId == PortfolioProfiles.partnerId)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, bottom: 2),
+                child: Text(
+                  '${activeProfile.emoji} Growth 70% · ปันผล+ทอง 20% · ไทย 10%',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 6),
             _CompactBudgetBar(
               budgetController: _budgetController,
               plan: plan,
@@ -201,13 +260,13 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
                     Expanded(
                       child: ListView.separated(
                         padding: EdgeInsets.zero,
-                        itemCount: AppConstants.dcaCalculatorAssets.length,
+                        itemCount: _assets.length,
                         separatorBuilder: (_, __) => const Divider(
                           height: 1,
                           color: AppColors.border,
                         ),
                         itemBuilder: (context, index) {
-                          final asset = AppConstants.dcaCalculatorAssets[index];
+                          final asset = _assets[index];
                           final symbol = asset['symbol'] as String;
                           final row = plan?.rows.firstWhere(
                             (r) => r.symbol == symbol,
@@ -264,6 +323,65 @@ class _SaveCheckButton extends StatelessWidget {
       padding: EdgeInsets.zero,
       visualDensity: VisualDensity.compact,
       constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+    );
+  }
+}
+
+class _ProfileSwitcher extends StatelessWidget {
+  const _ProfileSwitcher({
+    required this.selectedId,
+    required this.onSelected,
+  });
+
+  final String selectedId;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final profile in PortfolioProfiles.all)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: profile.id == PortfolioProfiles.retirementId ? 4 : 0,
+                left: profile.id == PortfolioProfiles.partnerId ? 4 : 0,
+              ),
+              child: Material(
+                color: selectedId == profile.id
+                    ? AppColors.accent.withValues(alpha: 0.18)
+                    : AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  onTap: () => onSelected(profile.id),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selectedId == profile.id
+                            ? AppColors.accent
+                            : AppColors.border,
+                      ),
+                    ),
+                    child: Text(
+                      '${profile.emoji} ${profile.name}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: selectedId == profile.id
+                            ? AppColors.accent
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
