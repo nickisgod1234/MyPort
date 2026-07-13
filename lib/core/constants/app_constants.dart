@@ -5,7 +5,7 @@ class AppConstants {
   static const portfolioName = 'เกษียณสำราญ';
   static const fmpBaseUrl = 'https://financialmodelingprep.com/stable';
   static const usdThbRate = 33.28;
-  static const portfolioDataVersion = 2;
+  static const portfolioDataVersion = 3;
 
   static const defaultTargetAmount = 7000000.0;
   static const defaultCurrentAge = 36;
@@ -20,12 +20,12 @@ class AppConstants {
   static const watchlistSymbols = ['AAPL', 'NVDA', 'AMZN', 'V', 'SPY'];
 
   static const targetAllocations = <String, double>{
-    'VT': 4500 / 11000,
-    'KKP_NDQ': 2500 / 11000,
-    'SMH': 1500 / 11000,
-    'MTS_GOLD': 1000 / 11000,
-    'BTCUSD': 1000 / 11000,
-    'RKLB': 500 / 11000,
+    'VT': 3600 / 10000,
+    'KKP_NDQ': 2300 / 10000,
+    'SMH': 1800 / 10000,
+    'MTS_GOLD': 900 / 10000,
+    'BTCUSD': 900 / 10000,
+    'RKLB': 500 / 10000,
   };
 
   static const assetDisplayNames = <String, String>{
@@ -72,18 +72,18 @@ class AppConstants {
           'fmpSymbol': 'VT',
           'shares': 1.0504,
           'averageCost': 128.78,
-          'targetAllocation': 4500 / 11000,
+          'targetAllocation': 3600 / 10000,
           'isThaiFund': false,
         },
         {
           'symbol': 'KKP_NDQ',
           'displayName': 'KKP NDQ100-UH-E',
-          'shares': 250.0,
+          'shares': 230.0,
           'averageCost': 10.0,
-          'targetAllocation': 2500 / 11000,
+          'targetAllocation': 2300 / 10000,
           'isThaiFund': true,
-          'fixedValueThb': 2500.0,
-          'fixedCostThb': 2500.0,
+          'fixedValueThb': 2300.0,
+          'fixedCostThb': 2300.0,
         },
         {
           'symbol': 'SMH',
@@ -91,18 +91,18 @@ class AppConstants {
           'fmpSymbol': 'SMH',
           'shares': 0.5,
           'averageCost': 300.0,
-          'targetAllocation': 1500 / 11000,
+          'targetAllocation': 1800 / 10000,
           'isThaiFund': false,
         },
         {
           'symbol': 'MTS_GOLD',
           'displayName': 'MTS-GOLD',
           'shares': 1.0,
-          'averageCost': 1000.0,
-          'targetAllocation': 1000 / 11000,
+          'averageCost': 900.0,
+          'targetAllocation': 900 / 10000,
           'isThaiFund': true,
-          'fixedValueThb': 1000.0,
-          'fixedCostThb': 1000.0,
+          'fixedValueThb': 900.0,
+          'fixedCostThb': 900.0,
         },
         {
           'symbol': 'BTCUSD',
@@ -110,7 +110,7 @@ class AppConstants {
           'fmpSymbol': 'BTCUSD',
           'shares': 0.01,
           'averageCost': 100000.0,
-          'targetAllocation': 1000 / 11000,
+          'targetAllocation': 900 / 10000,
           'isThaiFund': false,
         },
         {
@@ -119,7 +119,7 @@ class AppConstants {
           'fmpSymbol': 'RKLB',
           'shares': 0.5378,
           'averageCost': 27.92,
-          'targetAllocation': 500 / 11000,
+          'targetAllocation': 500 / 10000,
           'isThaiFund': false,
         },
       ];
