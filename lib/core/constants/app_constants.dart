@@ -20,12 +20,12 @@ class AppConstants {
   static const watchlistSymbols = ['AAPL', 'NVDA', 'AMZN', 'V', 'SPY'];
 
   static const targetAllocations = <String, double>{
-    'VT': 3600 / 10000,
-    'KKP_NDQ': 2300 / 10000,
-    'SMH': 1800 / 10000,
-    'MTS_GOLD': 900 / 10000,
-    'BTCUSD': 900 / 10000,
-    'RKLB': 500 / 10000,
+    'VT': 0.30,
+    'KKP_NDQ': 0.30,
+    'SMH': 0.20,
+    'MTS_GOLD': 0.10,
+    'BTCUSD': 0.05,
+    'RKLB': 0.05,
   };
 
   static const assetDisplayNames = <String, String>{
@@ -72,7 +72,7 @@ class AppConstants {
           'fmpSymbol': 'VT',
           'shares': 1.0504,
           'averageCost': 128.78,
-          'targetAllocation': 3600 / 10000,
+          'targetAllocation': 0.30,
           'isThaiFund': false,
         },
         {
@@ -80,7 +80,7 @@ class AppConstants {
           'displayName': 'KKP NDQ100-UH-E',
           'shares': 230.0,
           'averageCost': 10.0,
-          'targetAllocation': 2300 / 10000,
+          'targetAllocation': 0.30,
           'isThaiFund': true,
           'fixedValueThb': 2300.0,
           'fixedCostThb': 2300.0,
@@ -91,7 +91,7 @@ class AppConstants {
           'fmpSymbol': 'SMH',
           'shares': 0.5,
           'averageCost': 300.0,
-          'targetAllocation': 1800 / 10000,
+          'targetAllocation': 0.20,
           'isThaiFund': false,
         },
         {
@@ -99,7 +99,7 @@ class AppConstants {
           'displayName': 'MTS-GOLD',
           'shares': 1.0,
           'averageCost': 900.0,
-          'targetAllocation': 900 / 10000,
+          'targetAllocation': 0.10,
           'isThaiFund': true,
           'fixedValueThb': 900.0,
           'fixedCostThb': 900.0,
@@ -110,7 +110,7 @@ class AppConstants {
           'fmpSymbol': 'BTCUSD',
           'shares': 0.01,
           'averageCost': 100000.0,
-          'targetAllocation': 900 / 10000,
+          'targetAllocation': 0.05,
           'isThaiFund': false,
         },
         {
@@ -119,7 +119,7 @@ class AppConstants {
           'fmpSymbol': 'RKLB',
           'shares': 0.5378,
           'averageCost': 27.92,
-          'targetAllocation': 500 / 10000,
+          'targetAllocation': 0.05,
           'isThaiFund': false,
         },
       ];

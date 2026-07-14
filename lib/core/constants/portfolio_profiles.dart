@@ -30,43 +30,43 @@ class PortfolioProfiles {
       {
         'symbol': 'VT',
         'name': 'Vanguard Total World Stock ETF (VT)',
-        'target': 3600 / 10000,
-        'defaultValue': 3600.0,
+        'target': 0.30,
+        'defaultValue': 3000.0,
       },
       {
         'symbol': 'KKP_NDQ',
         'name': 'KKP NDQ100-UH-E',
-        'target': 2300 / 10000,
-        'defaultValue': 2300.0,
+        'target': 0.30,
+        'defaultValue': 3000.0,
       },
       {
         'symbol': 'SMH',
         'name': 'VanEck Semiconductor ETF (SMH)',
-        'target': 1800 / 10000,
-        'defaultValue': 1800.0,
+        'target': 0.20,
+        'defaultValue': 2000.0,
       },
       {
         'symbol': 'MTS_GOLD',
         'name': 'Gold',
-        'target': 900 / 10000,
-        'defaultValue': 900.0,
+        'target': 0.10,
+        'defaultValue': 1000.0,
       },
       {
         'symbol': 'BTCUSD',
         'name': 'Bitcoin',
-        'target': 900 / 10000,
-        'defaultValue': 900.0,
+        'target': 0.05,
+        'defaultValue': 500.0,
       },
       {
         'symbol': 'RKLB',
         'name': 'Rocket Lab',
-        'target': 500 / 10000,
+        'target': 0.05,
         'defaultValue': 500.0,
       },
     ],
   );
 
-  /// พอร์ตแฟน — growth US 75% + ปันผล 15% + ทอง 10%
+  /// พอร์ตแฟน — growth 80% + ปันผล 10% + ทอง 10%
   static const partner = PortfolioProfile(
     id: partnerId,
     name: 'แฟน',
@@ -82,13 +82,13 @@ class PortfolioProfiles {
       {
         'symbol': 'SCHG',
         'name': 'Schwab US Large-Cap Growth (SCHG)',
-        'target': 0.45,
+        'target': 0.50,
         'defaultValue': 0.0,
       },
       {
         'symbol': 'SCHD',
         'name': 'Schwab US Dividend Equity (SCHD)',
-        'target': 0.15,
+        'target': 0.10,
         'defaultValue': 0.0,
       },
       {
