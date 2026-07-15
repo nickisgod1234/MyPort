@@ -74,8 +74,8 @@ class PortfolioProfiles {
     defaultMonthlyBudget: 5000,
     assets: [
       {
-        'symbol': 'VTI',
-        'name': 'Vanguard Total Stock Market (VTI)',
+        'symbol': 'VT',
+        'name': 'Vanguard Total World (VT)',
         'target': 0.30,
         'defaultValue': 0.0,
       },
