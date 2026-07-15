@@ -298,7 +298,7 @@ class WithdrawalSimulator {
         recommended: false,
       ),
       const WithdrawalSourceRecommendation(
-        name: 'Bitcoin',
+        name: 'BTC',
         amount: 0,
         recommended: false,
       ),

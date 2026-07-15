@@ -114,7 +114,8 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
       final value = double.tryParse(_valueControllers[symbol]!.text) ?? 0;
       return RebalanceCalculatorInput(
         symbol: symbol,
-        name: asset['name'] as String,
+        name: AppConstants.assetDisplayNames[symbol] ??
+            asset['name'] as String,
         targetPercent: (asset['target'] as num).toDouble(),
         currentValue: value,
       );
@@ -321,7 +322,8 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
                             (r) => r.symbol == symbol,
                           );
                           return _DcaTableRow(
-                            name: asset['name'] as String,
+                            name: AppConstants.assetDisplayNames[symbol] ??
+                                asset['name'] as String,
                             targetPercent: (asset['target'] as num).toDouble(),
                             previousValue: _previousValueFor(
                               symbol,

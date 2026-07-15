@@ -28,7 +28,8 @@ class PortfolioService {
 
     for (final asset in profile.assets) {
       final symbol = asset['symbol'] as String;
-      final name = asset['name'] as String;
+      final name =
+          AppConstants.assetDisplayNames[symbol] ?? asset['name'] as String;
       final defaultValue = (asset['defaultValue'] as num).toDouble();
       final target = (asset['target'] as num).toDouble();
 

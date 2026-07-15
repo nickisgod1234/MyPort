@@ -29,7 +29,7 @@ class PortfolioProfiles {
     assets: [
       {
         'symbol': 'VT',
-        'name': 'Vanguard Total World Stock ETF (VT)',
+        'name': 'VT',
         'target': 0.30,
         'defaultValue': 3000.0,
       },
@@ -41,7 +41,7 @@ class PortfolioProfiles {
       },
       {
         'symbol': 'SMH',
-        'name': 'VanEck Semiconductor ETF (SMH)',
+        'name': 'SMH',
         'target': 0.20,
         'defaultValue': 2000.0,
       },
@@ -53,13 +53,13 @@ class PortfolioProfiles {
       },
       {
         'symbol': 'BTCUSD',
-        'name': 'Bitcoin',
+        'name': 'BTC',
         'target': 0.05,
         'defaultValue': 500.0,
       },
       {
         'symbol': 'RKLB',
-        'name': 'Rocket Lab',
+        'name': 'RKLB',
         'target': 0.05,
         'defaultValue': 500.0,
       },
@@ -75,19 +75,19 @@ class PortfolioProfiles {
     assets: [
       {
         'symbol': 'VT',
-        'name': 'Vanguard Total World (VT)',
+        'name': 'VT',
         'target': 0.30,
         'defaultValue': 0.0,
       },
       {
         'symbol': 'SCHG',
-        'name': 'Schwab US Large-Cap Growth (SCHG)',
+        'name': 'SCHG',
         'target': 0.55,
         'defaultValue': 0.0,
       },
       {
         'symbol': 'SCHD',
-        'name': 'Schwab US Dividend Equity (SCHD)',
+        'name': 'SCHD',
         'target': 0.05,
         'defaultValue': 0.0,
       },
