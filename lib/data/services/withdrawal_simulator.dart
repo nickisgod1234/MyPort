@@ -7,6 +7,7 @@ class WithdrawalSimulator {
   static const _dividendYield = 0.04;
   static const _growthAssets = {
     'VT',
+    'VTI',
     'SMH',
     'SCHG',
     'BTCUSD',

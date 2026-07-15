@@ -66,7 +66,7 @@ class PortfolioProfiles {
     ],
   );
 
-  /// พอร์ตแฟน — growth 80% + ปันผล 10% + ทอง 10%
+  /// พอร์ตแฟน — growth 85% + ปันผล 5% + ทอง 10%
   static const partner = PortfolioProfile(
     id: partnerId,
     name: 'แฟน',
@@ -74,21 +74,21 @@ class PortfolioProfiles {
     defaultMonthlyBudget: 5000,
     assets: [
       {
-        'symbol': 'VT',
-        'name': 'Vanguard Total World (VT)',
+        'symbol': 'VTI',
+        'name': 'Vanguard Total Stock Market (VTI)',
         'target': 0.30,
         'defaultValue': 0.0,
       },
       {
         'symbol': 'SCHG',
         'name': 'Schwab US Large-Cap Growth (SCHG)',
-        'target': 0.50,
+        'target': 0.55,
         'defaultValue': 0.0,
       },
       {
         'symbol': 'SCHD',
         'name': 'Schwab US Dividend Equity (SCHD)',
-        'target': 0.10,
+        'target': 0.05,
         'defaultValue': 0.0,
       },
       {

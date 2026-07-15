@@ -16,7 +16,15 @@ class AppConstants {
   static List<Map<String, dynamic>> get dcaCalculatorAssets =>
       PortfolioProfiles.retirement.assets;
 
-  static const marketWatchSymbols = ['VT', 'SMH', 'RKLB', 'GCUSD', 'SCHG', 'SCHD'];
+  static const marketWatchSymbols = [
+    'VT',
+    'VTI',
+    'SMH',
+    'RKLB',
+    'GCUSD',
+    'SCHG',
+    'SCHD',
+  ];
   static const watchlistSymbols = ['AAPL', 'NVDA', 'AMZN', 'V', 'SPY'];
 
   static const targetAllocations = <String, double>{
@@ -30,6 +38,7 @@ class AppConstants {
 
   static const assetDisplayNames = <String, String>{
     'VT': 'VT',
+    'VTI': 'VTI',
     'KKP_NDQ': 'KKP NDQ100-UH-E',
     'SMH': 'SMH',
     'SCHG': 'SCHG',
@@ -48,6 +57,7 @@ class AppConstants {
 
   static const assetColors = <String, int>{
     'VT': 0xFF8B2332,
+    'VTI': 0xFFC2410C,
     'KKP_NDQ': 0xFF1E3A8A,
     'SMH': 0xFF6B21A8,
     'SCHG': 0xFF0D9488,

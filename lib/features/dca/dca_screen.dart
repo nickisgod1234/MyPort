@@ -210,6 +210,54 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
     return true;
   }
 
+  Future<void> _clearAssetValues() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('เคลียร์มูลค่า'),
+        content: const Text(
+          'รีเซ็ตมูลค่าปัจจุบันและก่อนหน้าเป็น 0\n'
+          'สัดส่วนเป้าหมายและงบ/เดือนจะไม่เปลี่ยน',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('เคลียร์'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    for (final controller in _valueControllers.values) {
+      controller.text = '0.00';
+    }
+
+    final zeros = <String, double>{
+      for (final symbol in _valueControllers.keys) symbol: 0.0,
+    };
+
+    _previousValues.clear();
+    _committedValues = Map<String, double>.from(zeros);
+    await _storage.saveDcaAssetValues(zeros, profileId: _profileId);
+    await _storage.saveDcaAssetPreviousValues({}, profileId: _profileId);
+
+    ref.invalidate(portfolioSummaryProvider);
+    ref.invalidate(retirementProjectionProvider);
+    _recalculate();
+    setState(() => _activeField = null);
+
+    if (!mounted) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('เคลียร์มูลค่าเป็น 0 แล้ว')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final plan = _plan;
@@ -231,7 +279,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 6, bottom: 2),
                 child: Text(
-                  '${activeProfile.emoji} Growth 80% · ปันผล 10% · ทอง 10%',
+                  '${activeProfile.emoji} Growth 85% · ปันผล 5% · ทอง 10%',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 11,
@@ -244,6 +292,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
               budgetController: _budgetController,
               plan: plan,
               onChanged: _onBudgetChanged,
+              onClear: _clearAssetValues,
             ),
             const SizedBox(height: 8),
             Expanded(
@@ -391,11 +440,13 @@ class _CompactBudgetBar extends StatelessWidget {
     required this.budgetController,
     required this.plan,
     required this.onChanged,
+    required this.onClear,
   });
 
   final TextEditingController budgetController;
   final RebalancePlan? plan;
   final VoidCallback onChanged;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -440,6 +491,17 @@ class _CompactBudgetBar extends StatelessWidget {
                   ),
                   onChanged: (_) => onChanged(),
                 ),
+              ),
+              const SizedBox(width: 4),
+              TextButton(
+                onPressed: onClear,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('เคลียร์', style: TextStyle(fontSize: 12)),
               ),
             ],
           ),

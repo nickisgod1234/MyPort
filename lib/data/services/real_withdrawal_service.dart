@@ -8,6 +8,7 @@ class RealWithdrawalService {
   /// ประมาณ dividend yield ต่อปีของแต่ละสินทรัพย์ (จากมูลค่าปัจจุบัน)
   static const _dividendYieldBySymbol = <String, double>{
     'VT': 0.015,
+    'VTI': 0.013,
     'KKP_NDQ': 0.0,
     'SMH': 0.008,
     'SCHG': 0.0,
