@@ -328,103 +328,107 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
 
     return AppScaffold(
       title: AppConstants.appName,
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _ProfileSwitcher(
-              selectedId: _profileId,
-              onSelected: _switchProfile,
-            ),
-            if (_profileId == PortfolioProfiles.partnerId)
-              Padding(
-                padding: const EdgeInsets.only(top: 6, bottom: 2),
-                child: Text(
-                  '${activeProfile.emoji} Growth 85% · ปันผล 5% · ทอง 10%',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight - 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _ProfileSwitcher(
+                    selectedId: _profileId,
+                    onSelected: _switchProfile,
                   ),
-                ),
-              ),
-            const SizedBox(height: 6),
-            _CompactBudgetBar(
-              budgetController: _budgetController,
-              rateController: _rateController,
-              plan: plan,
-              usdThbRate: usdThbRate,
-              inputInUsd: _inputInUsd,
-              onChanged: _onBudgetChanged,
-              onClear: _clearAssetValues,
-              onRateChanged: _onRateChanged,
-              onCurrencyChanged: _setInputCurrency,
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  children: [
-                    _DcaTableHeader(inputInUsd: _inputInUsd),
-                    const Divider(height: 1, color: AppColors.border),
-                    Expanded(
-                      child: ListView.separated(
-                        padding: EdgeInsets.zero,
-                        itemCount: _assets.length,
-                        separatorBuilder: (_, __) => const Divider(
-                          height: 1,
-                          color: AppColors.border,
+                  if (_profileId == PortfolioProfiles.partnerId)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6, bottom: 2),
+                      child: Text(
+                        '${activeProfile.emoji} Growth 85% · ปันผล 5% · ทอง 10%',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
                         ),
-                        itemBuilder: (context, index) {
-                          final asset = _assets[index];
+                      ),
+                    ),
+                  const SizedBox(height: 6),
+                  _CompactBudgetBar(
+                    budgetController: _budgetController,
+                    rateController: _rateController,
+                    plan: plan,
+                    usdThbRate: usdThbRate,
+                    inputInUsd: _inputInUsd,
+                    onChanged: _onBudgetChanged,
+                    onClear: _clearAssetValues,
+                    onRateChanged: _onRateChanged,
+                    onCurrencyChanged: _setInputCurrency,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _DcaTableHeader(inputInUsd: _inputInUsd),
+                        const Divider(height: 1, color: AppColors.border),
+                        ..._assets.asMap().entries.expand((entry) {
+                          final index = entry.key;
+                          final asset = entry.value;
                           final symbol = asset['symbol'] as String;
                           final row = plan?.rows.firstWhere(
                             (r) => r.symbol == symbol,
                           );
-                          return _DcaTableRow(
-                            name: AppConstants.assetDisplayNames[symbol] ??
-                                asset['name'] as String,
-                            targetPercent: (asset['target'] as num).toDouble(),
-                            previousValue: _previousValueFor(
-                              symbol,
-                              asset['defaultValue'] as num,
+                          return [
+                            if (index > 0)
+                              const Divider(height: 1, color: AppColors.border),
+                            _DcaTableRow(
+                              name: AppConstants.assetDisplayNames[symbol] ??
+                                  asset['name'] as String,
+                              targetPercent:
+                                  (asset['target'] as num).toDouble(),
+                              previousValue: _previousValueFor(
+                                symbol,
+                                asset['defaultValue'] as num,
+                              ),
+                              controller: _valueControllers[symbol]!,
+                              row: row,
+                              usdThbRate: usdThbRate,
+                              inputInUsd: _inputInUsd,
+                              showSave: _activeField == symbol,
+                              onChanged: () => _onAssetChanged(symbol),
+                              onFieldTap: () => _onFieldTap(symbol),
+                              onCommit: _commitNow,
                             ),
-                            controller: _valueControllers[symbol]!,
-                            row: row,
+                          ];
+                        }),
+                        if (plan != null) ...[
+                          const Divider(height: 1, color: AppColors.border),
+                          _DcaTotalFooter(
+                            totalBuy: plan.totalBuy,
                             usdThbRate: usdThbRate,
-                            inputInUsd: _inputInUsd,
-                            showSave: _activeField == symbol,
-                            onChanged: () => _onAssetChanged(symbol),
-                            onFieldTap: () => _onFieldTap(symbol),
-                            onCommit: _commitNow,
-                          );
-                        },
-                      ),
+                          ),
+                        ],
+                      ],
                     ),
-                    if (plan != null) ...[
-                      const Divider(height: 1, color: AppColors.border),
-                      _DcaTotalFooter(
-                        totalBuy: plan.totalBuy,
-                        usdThbRate: usdThbRate,
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 8),
+                  _CompactRetirementGoal(
+                    retirement: retirement,
+                    currentAmount:
+                        plan?.totalPortfolio ?? retirement.currentAmount,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            _CompactRetirementGoal(
-              retirement: retirement,
-              currentAmount: plan?.totalPortfolio ?? retirement.currentAmount,
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -534,7 +538,7 @@ class _CompactBudgetBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
@@ -568,7 +572,7 @@ class _CompactBudgetBar extends StatelessWidget {
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 10,
-                      vertical: 8,
+                      vertical: 6,
                     ),
                     suffixText: '฿',
                   ),
@@ -588,7 +592,7 @@ class _CompactBudgetBar extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(
             children: [
               const Text(
@@ -618,7 +622,7 @@ class _CompactBudgetBar extends StatelessWidget {
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 8,
-                      vertical: 8,
+                      vertical: 6,
                     ),
                     suffixText: '฿/\$',
                     suffixStyle: TextStyle(fontSize: 10),
@@ -634,7 +638,7 @@ class _CompactBudgetBar extends StatelessWidget {
             ],
           ),
           if (plan != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
@@ -968,11 +972,15 @@ class _DcaTableRow extends StatelessWidget {
                         compact: true,
                       ),
                     const SizedBox(width: 4),
-                    Text(
-                      'เป้า ${(targetPercent * 100).toStringAsFixed(0)}%',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 9,
+                    Flexible(
+                      child: Text(
+                        'เป้า ${(targetPercent * 100).toStringAsFixed(0)}%',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 9,
+                        ),
                       ),
                     ),
                   ],
