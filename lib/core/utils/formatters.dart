@@ -16,6 +16,29 @@ String formatThbCompact(double value) =>
 
 String formatUsdApprox(double value) => '≈ ${formatUsd(value)}';
 
+double thbToUsd(double thb, double usdThbRate) {
+  if (usdThbRate <= 0) return 0;
+  return thb / usdThbRate;
+}
+
+double usdToThb(double usd, double usdThbRate) {
+  if (usdThbRate <= 0) return 0;
+  return usd * usdThbRate;
+}
+
+String formatUsdFromThb(double thb, double usdThbRate) =>
+    formatUsdApprox(thbToUsd(thb, usdThbRate));
+
+String formatThbFromUsd(double usd, double usdThbRate) =>
+    '≈ ${formatThbCompact(usdToThb(usd, usdThbRate))}';
+
+/// แปลงค่าที่แสดงในช่องกรอก ↔ บาท (เก็บภายในเป็น THB เสมอ)
+double displayAmountFromThb(double thb, {required bool inUsd, required double rate}) =>
+    inUsd ? thbToUsd(thb, rate) : thb;
+
+double thbFromDisplayAmount(double display, {required bool inUsd, required double rate}) =>
+    inUsd ? usdToThb(display, rate) : display;
+
 String formatPercent(double value, {bool showSign = true}) {
   final sign = showSign && value > 0 ? '+' : '';
   return '$sign${_percent.format(value)}%';
@@ -28,8 +51,8 @@ String formatMillionsThb(double value) {
   return '${millions.toStringAsFixed(1)} / ${(AppConstants.defaultTargetAmount / 1000000).toStringAsFixed(0)} ล้านบาท';
 }
 
-String formatExchangeRate() =>
-    '1 USD = ${AppConstants.usdThbRate.toStringAsFixed(2)} THB';
+String formatExchangeRate([double? usdThbRate]) =>
+    '1 USD = ${(usdThbRate ?? AppConstants.usdThbRate).toStringAsFixed(2)} ฿';
 
 String formatProfitThb(double profit) {
   final sign = profit >= 0 ? '+' : '';

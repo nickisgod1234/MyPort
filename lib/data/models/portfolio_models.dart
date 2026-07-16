@@ -78,7 +78,11 @@ class PortfolioSummary {
   final double totalReturnPercent;
   final List<HoldingValue> holdings;
 
-  double get totalValueUsd => totalValueThb / AppConstants.usdThbRate;
+  double totalValueUsd([double? usdThbRate]) {
+    final rate = usdThbRate ?? AppConstants.usdThbRate;
+    if (rate <= 0) return 0;
+    return totalValueThb / rate;
+  }
 }
 
 class HoldingValue {

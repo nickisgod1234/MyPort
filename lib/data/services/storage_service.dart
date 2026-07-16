@@ -18,6 +18,8 @@ class StorageService {
   static const _keyDcaAssetValues = 'dca_asset_values';
   static const _keyDcaAssetPreviousValues = 'dca_asset_previous_values';
   static const _keyDarkMode = 'dark_mode';
+  static const _keyUsdThbRate = 'usd_thb_rate';
+  static const _keyDcaInputCurrency = 'dca_input_currency';
   static const _keyPortfolioVersion = 'portfolio_data_version';
   static const _keyActiveProfile = 'active_profile_id';
 
@@ -168,6 +170,23 @@ class StorageService {
 
   bool get darkMode => _settings.get(_keyDarkMode, defaultValue: true) as bool;
   Future<void> setDarkMode(bool value) => _settings.put(_keyDarkMode, value);
+
+  /// บาทต่อ 1 ดอลลาร์ (เช่น 33.28)
+  double get usdThbRate =>
+      (_settings.get(_keyUsdThbRate) as num?)?.toDouble() ??
+      AppConstants.usdThbRate;
+
+  Future<void> setUsdThbRate(double value) =>
+      _settings.put(_keyUsdThbRate, value);
+
+  /// สกุลเงินช่องกรอก DCA: `THB` หรือ `USD`
+  String get dcaInputCurrency {
+    final value = _settings.get(_keyDcaInputCurrency, defaultValue: 'THB') as String;
+    return value == 'USD' ? 'USD' : 'THB';
+  }
+
+  Future<void> setDcaInputCurrency(String value) =>
+      _settings.put(_keyDcaInputCurrency, value == 'USD' ? 'USD' : 'THB');
 
   List<Holding> getHoldings() {
     final raw = _holdings.get('list') as List<dynamic>?;

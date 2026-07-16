@@ -19,6 +19,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late final TextEditingController _ageController;
   late final TextEditingController _retirementController;
   late final TextEditingController _targetController;
+  late final TextEditingController _usdThbRateController;
   bool _darkMode = true;
 
   @override
@@ -33,6 +34,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _targetController = TextEditingController(
       text: storage.targetAmount.toStringAsFixed(0),
     );
+    _usdThbRateController = TextEditingController(
+      text: storage.usdThbRate.toStringAsFixed(2),
+    );
     _darkMode = storage.darkMode;
   }
 
@@ -42,6 +46,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _ageController.dispose();
     _retirementController.dispose();
     _targetController.dispose();
+    _usdThbRateController.dispose();
     super.dispose();
   }
 
@@ -56,6 +61,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       double.tryParse(_targetController.text) ??
           AppConstants.defaultTargetAmount,
     );
+    final usdThbRate = double.tryParse(_usdThbRateController.text) ??
+        AppConstants.usdThbRate;
+    final safeRate = usdThbRate > 0 ? usdThbRate : AppConstants.usdThbRate;
+    await storage.setUsdThbRate(safeRate);
+    ref.read(usdThbRateProvider.notifier).state = safeRate;
     await storage.setDarkMode(_darkMode);
 
     ref.read(fmpApiServiceProvider).updateApiKey(_apiKeyController.text.trim());
@@ -91,6 +101,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 8),
           const Text(
             'ใช้ API เดียวสำหรับหุ้น, ETF และคริปโต',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'อัตราแลกเปลี่ยน'),
+          TextField(
+            controller: _usdThbRateController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'บาท ต่อ 1 ดอลลาร์',
+              hintText: 'เช่น 33.28',
+              suffixText: '฿ / \$',
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'ใส่เรทที่ใช้ตอนกรอกมูลค่า เช่น 1 USD = 32.50 บาท — แก้ได้บนหน้า DCA ด้วย',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 24),

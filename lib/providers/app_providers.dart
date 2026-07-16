@@ -46,6 +46,16 @@ final monthlyBudgetProvider = StateProvider<double>((ref) {
   return ref.watch(storageServiceProvider).monthlyBudget;
 });
 
+/// บาทต่อ 1 USD — อัปเดตจาก Settings / หน้า DCA
+final usdThbRateProvider = StateProvider<double>((ref) {
+  return ref.watch(storageServiceProvider).usdThbRate;
+});
+
+/// สกุลเงินช่องกรอกมูลค่าในหน้า DCA (`THB` / `USD`)
+final dcaInputCurrencyProvider = StateProvider<String>((ref) {
+  return ref.watch(storageServiceProvider).dcaInputCurrency;
+});
+
 final chartPeriodProvider = StateProvider<ChartPeriod>((ref) => ChartPeriod.oneMonth);
 
 enum ChartPeriod { oneDay, oneMonth, sixMonths, oneYear, all }

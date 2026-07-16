@@ -18,6 +18,7 @@ class DashboardScreen extends ConsumerWidget {
     final marketAsync = ref.watch(marketQuotesProvider);
     final retirement = ref.watch(retirementProjectionProvider);
     final chartPeriod = ref.watch(chartPeriodProvider);
+    final usdThbRate = ref.watch(usdThbRateProvider);
 
     return AppScaffold(
       title: AppConstants.appName,
@@ -65,7 +66,7 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       const Spacer(),
                       Text(
-                        formatExchangeRate(),
+                        formatExchangeRate(usdThbRate),
                         style: const TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 12,
@@ -79,7 +80,7 @@ class DashboardScreen extends ConsumerWidget {
                   label: 'มูลค่าพอร์ตทั้งหมด',
                   value: formatThbCompact(summary.totalValueThb),
                   subtitle:
-                      '${formatPercent(summary.totalReturnPercent)} · ${formatUsdApprox(summary.totalValueUsd)}',
+                      '${formatPercent(summary.totalReturnPercent)} · ${formatUsdApprox(summary.totalValueUsd(usdThbRate))}',
                   valueColor: isProfit ? AppColors.profit : AppColors.loss,
                 ),
                 const SizedBox(height: 12),

@@ -23,21 +23,34 @@ class DcaScreen extends ConsumerStatefulWidget {
 class _DcaScreenState extends ConsumerState<DcaScreen> {
   late final StorageService _storage;
   late final TextEditingController _budgetController;
+  late final TextEditingController _rateController;
   late final Map<String, TextEditingController> _valueControllers;
   late final Map<String, double> _previousValues;
   late Map<String, double> _committedValues;
   late String _profileId;
   String? _activeField;
   RebalancePlan? _plan;
+  bool _inputInUsd = false;
 
   List<Map<String, dynamic>> get _assets =>
       PortfolioProfiles.byId(_profileId).assets;
+
+  double get _rate {
+    final parsed = double.tryParse(_rateController.text);
+    if (parsed != null && parsed > 0) return parsed;
+    final stored = ref.read(usdThbRateProvider);
+    return stored > 0 ? stored : AppConstants.usdThbRate;
+  }
 
   @override
   void initState() {
     super.initState();
     _storage = ref.read(storageServiceProvider);
+    _inputInUsd = ref.read(dcaInputCurrencyProvider) == 'USD';
     _budgetController = TextEditingController();
+    _rateController = TextEditingController(
+      text: ref.read(usdThbRateProvider).toStringAsFixed(2),
+    );
     _valueControllers = {};
     _previousValues = {};
     _committedValues = {};
@@ -67,15 +80,63 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
         profile.assets.map(
           (asset) {
             final symbol = asset['symbol'] as String;
+            final thb = _committedValues[symbol]!;
+            final display = displayAmountFromThb(
+              thb,
+              inUsd: _inputInUsd,
+              rate: _rate,
+            );
             return MapEntry(
               symbol,
-              TextEditingController(
-                text: _committedValues[symbol]!.toStringAsFixed(2),
-              ),
+              TextEditingController(text: display.toStringAsFixed(2)),
             );
           },
         ),
       );
+    _recalculate();
+  }
+
+  double _thbFromController(String symbol) {
+    final display = double.tryParse(_valueControllers[symbol]!.text) ?? 0;
+    return thbFromDisplayAmount(display, inUsd: _inputInUsd, rate: _rate);
+  }
+
+  Future<void> _setInputCurrency(bool inUsd) async {
+    if (_inputInUsd == inUsd) return;
+
+    // Convert currently typed values to THB first, then re-display.
+    final thbBySymbol = <String, double>{
+      for (final symbol in _valueControllers.keys) symbol: _thbFromController(symbol),
+    };
+
+    setState(() => _inputInUsd = inUsd);
+    await _storage.setDcaInputCurrency(inUsd ? 'USD' : 'THB');
+    ref.read(dcaInputCurrencyProvider.notifier).state = inUsd ? 'USD' : 'THB';
+
+    for (final entry in thbBySymbol.entries) {
+      final controller = _valueControllers[entry.key];
+      if (controller == null) continue;
+      final display = displayAmountFromThb(
+        entry.value,
+        inUsd: _inputInUsd,
+        rate: _rate,
+      );
+      controller.text = display.toStringAsFixed(2);
+    }
+    _recalculate();
+  }
+
+  Future<void> _onRateChanged(String raw) async {
+    final parsed = double.tryParse(raw);
+    if (parsed == null || parsed <= 0) {
+      _recalculate();
+      return;
+    }
+    ref.read(usdThbRateProvider.notifier).state = parsed;
+    await _storage.setUsdThbRate(parsed);
+
+    // Keep typed amounts as the same currency numbers; recalc THB internal uses new rate.
+    // If input is USD, changing rate changes THB equivalent — expected.
     _recalculate();
   }
 
@@ -101,6 +162,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
   @override
   void dispose() {
     _budgetController.dispose();
+    _rateController.dispose();
     for (final c in _valueControllers.values) {
       c.dispose();
     }
@@ -111,13 +173,12 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
     final budget = double.tryParse(_budgetController.text) ?? 10000;
     final inputs = _assets.map((asset) {
       final symbol = asset['symbol'] as String;
-      final value = double.tryParse(_valueControllers[symbol]!.text) ?? 0;
       return RebalanceCalculatorInput(
         symbol: symbol,
         name: AppConstants.assetDisplayNames[symbol] ??
             asset['name'] as String,
         targetPercent: (asset['target'] as num).toDouble(),
-        currentValue: value,
+        currentValue: _thbFromController(symbol),
       );
     }).toList();
 
@@ -165,8 +226,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
     }
 
     final values = <String, double>{
-      for (final entry in _valueControllers.entries)
-        entry.key: double.tryParse(entry.value.text) ?? 0,
+      for (final symbol in _valueControllers.keys) symbol: _thbFromController(symbol),
     };
 
     if (!_sameValueMaps(_committedValues, values)) {
@@ -264,6 +324,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
     final plan = _plan;
     final retirement = ref.watch(retirementProjectionProvider);
     final activeProfile = PortfolioProfiles.byId(_profileId);
+    final usdThbRate = ref.watch(usdThbRateProvider);
 
     return AppScaffold(
       title: AppConstants.appName,
@@ -291,9 +352,14 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
             const SizedBox(height: 6),
             _CompactBudgetBar(
               budgetController: _budgetController,
+              rateController: _rateController,
               plan: plan,
+              usdThbRate: usdThbRate,
+              inputInUsd: _inputInUsd,
               onChanged: _onBudgetChanged,
               onClear: _clearAssetValues,
+              onRateChanged: _onRateChanged,
+              onCurrencyChanged: _setInputCurrency,
             ),
             const SizedBox(height: 8),
             Expanded(
@@ -305,7 +371,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
                 ),
                 child: Column(
                   children: [
-                    const _DcaTableHeader(),
+                    _DcaTableHeader(inputInUsd: _inputInUsd),
                     const Divider(height: 1, color: AppColors.border),
                     Expanded(
                       child: ListView.separated(
@@ -331,6 +397,8 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
                             ),
                             controller: _valueControllers[symbol]!,
                             row: row,
+                            usdThbRate: usdThbRate,
+                            inputInUsd: _inputInUsd,
                             showSave: _activeField == symbol,
                             onChanged: () => _onAssetChanged(symbol),
                             onFieldTap: () => _onFieldTap(symbol),
@@ -341,7 +409,10 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
                     ),
                     if (plan != null) ...[
                       const Divider(height: 1, color: AppColors.border),
-                      _DcaTotalFooter(totalBuy: plan.totalBuy),
+                      _DcaTotalFooter(
+                        totalBuy: plan.totalBuy,
+                        usdThbRate: usdThbRate,
+                      ),
                     ],
                   ],
                 ),
@@ -440,15 +511,25 @@ class _ProfileSwitcher extends StatelessWidget {
 class _CompactBudgetBar extends StatelessWidget {
   const _CompactBudgetBar({
     required this.budgetController,
+    required this.rateController,
     required this.plan,
+    required this.usdThbRate,
+    required this.inputInUsd,
     required this.onChanged,
     required this.onClear,
+    required this.onRateChanged,
+    required this.onCurrencyChanged,
   });
 
   final TextEditingController budgetController;
+  final TextEditingController rateController;
   final RebalancePlan? plan;
+  final double usdThbRate;
+  final bool inputInUsd;
   final VoidCallback onChanged;
   final VoidCallback onClear;
+  final ValueChanged<String> onRateChanged;
+  final ValueChanged<bool> onCurrencyChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -507,6 +588,51 @@ class _CompactBudgetBar extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text(
+                'เรท',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 88,
+                child: TextField(
+                  controller: rateController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+                  ],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.right,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                    suffixText: '฿/\$',
+                    suffixStyle: TextStyle(fontSize: 10),
+                  ),
+                  onChanged: onRateChanged,
+                ),
+              ),
+              const Spacer(),
+              _CurrencyToggle(
+                inputInUsd: inputInUsd,
+                onChanged: onCurrencyChanged,
+              ),
+            ],
+          ),
           if (plan != null) ...[
             const SizedBox(height: 8),
             Row(
@@ -515,20 +641,29 @@ class _CompactBudgetBar extends StatelessWidget {
                   child: _InlineStat(
                     label: 'รวมพอร์ต',
                     value: formatThbCompact(plan!.totalPortfolio),
+                    subtitle: formatUsdFromThb(
+                      plan!.totalPortfolio,
+                      usdThbRate,
+                    ),
                   ),
                 ),
-                Container(width: 1, height: 28, color: AppColors.border),
+                Container(width: 1, height: 36, color: AppColors.border),
                 Expanded(
                   child: _InlineStat(
                     label: 'หลังลงทุน',
                     value: formatThbCompact(plan!.totalAfterInvest),
+                    subtitle: formatUsdFromThb(
+                      plan!.totalAfterInvest,
+                      usdThbRate,
+                    ),
                   ),
                 ),
-                Container(width: 1, height: 28, color: AppColors.border),
+                Container(width: 1, height: 36, color: AppColors.border),
                 Expanded(
                   child: _InlineStat(
                     label: 'ซื้อเดือนหน้า',
                     value: formatThbCompact(plan!.totalBuy),
+                    subtitle: formatUsdFromThb(plan!.totalBuy, usdThbRate),
                     valueColor: AppColors.accent,
                     bold: true,
                   ),
@@ -542,16 +677,89 @@ class _CompactBudgetBar extends StatelessWidget {
   }
 }
 
+class _CurrencyToggle extends StatelessWidget {
+  const _CurrencyToggle({
+    required this.inputInUsd,
+    required this.onChanged,
+  });
+
+  final bool inputInUsd;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _CurrencyChip(
+            label: '฿',
+            selected: !inputInUsd,
+            onTap: () => onChanged(false),
+          ),
+          _CurrencyChip(
+            label: '\$',
+            selected: inputInUsd,
+            onTap: () => onChanged(true),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CurrencyChip extends StatelessWidget {
+  const _CurrencyChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(7),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.accent.withValues(alpha: 0.2) : null,
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+            color: selected ? AppColors.accent : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _InlineStat extends StatelessWidget {
   const _InlineStat({
     required this.label,
     required this.value,
+    this.subtitle,
     this.valueColor,
     this.bold = false,
   });
 
   final String label;
   final String value;
+  final String? subtitle;
   final Color? valueColor;
   final bool bold;
 
@@ -583,6 +791,19 @@ class _InlineStat extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 1),
+            Text(
+              subtitle!,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 9,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );
@@ -590,15 +811,18 @@ class _InlineStat extends StatelessWidget {
 }
 
 class _DcaTableHeader extends StatelessWidget {
-  const _DcaTableHeader();
+  const _DcaTableHeader({required this.inputInUsd});
+
+  final bool inputInUsd;
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    final unit = inputInUsd ? '\$' : '฿';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
-          Expanded(
+          const Expanded(
             flex: 4,
             child: Text(
               'สินทรัพย์',
@@ -612,9 +836,9 @@ class _DcaTableHeader extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(
-              'ราคาก่อนหน้า',
+              'ก่อน ($unit)',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
@@ -624,16 +848,16 @@ class _DcaTableHeader extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(
-              'ราคาปัจจุบัน',
+              'ปัจจุบัน ($unit)',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          Expanded(
+          const Expanded(
             flex: 2,
             child: Text(
               'สัดส่วน',
@@ -645,7 +869,7 @@ class _DcaTableHeader extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
+          const Expanded(
             flex: 3,
             child: Text(
               'ซื้อเดือนหน้า',
@@ -670,6 +894,8 @@ class _DcaTableRow extends StatelessWidget {
     required this.previousValue,
     required this.controller,
     required this.row,
+    required this.usdThbRate,
+    required this.inputInUsd,
     required this.showSave,
     required this.onChanged,
     required this.onFieldTap,
@@ -681,6 +907,8 @@ class _DcaTableRow extends StatelessWidget {
   final double? previousValue;
   final TextEditingController controller;
   final RebalanceRow? row;
+  final double usdThbRate;
+  final bool inputInUsd;
   final bool showSave;
   final VoidCallback onChanged;
   final VoidCallback onFieldTap;
@@ -688,10 +916,27 @@ class _DcaTableRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentValue = double.tryParse(controller.text);
-    final delta = (previousValue != null && currentValue != null)
-        ? currentValue - previousValue!
+    final displayValue = double.tryParse(controller.text);
+    final currentThb = displayValue == null
+        ? null
+        : thbFromDisplayAmount(
+            displayValue,
+            inUsd: inputInUsd,
+            rate: usdThbRate,
+          );
+    final previousDisplay = previousValue == null
+        ? null
+        : displayAmountFromThb(
+            previousValue!,
+            inUsd: inputInUsd,
+            rate: usdThbRate,
+          );
+    final delta = (previousValue != null && currentThb != null)
+        ? currentThb - previousValue!
         : null;
+    final deltaDisplay = delta == null
+        ? null
+        : displayAmountFromThb(delta, inUsd: inputInUsd, rate: usdThbRate);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -740,22 +985,35 @@ class _DcaTableRow extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  previousValue == null
+                  previousDisplay == null
                       ? '—'
-                      : formatThbCompact(previousValue!),
+                      : previousDisplay.toStringAsFixed(2),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 10,
                     color: AppColors.textSecondary,
                   ),
                 ),
-                if (delta != null && delta.abs() >= 0.01)
+                if (previousValue != null)
                   Text(
-                    '${delta >= 0 ? '+' : ''}${formatThbCompact(delta)}',
+                    inputInUsd
+                        ? formatThbCompact(previousValue!)
+                        : formatUsdFromThb(previousValue!, usdThbRate),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 8,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                if (deltaDisplay != null && deltaDisplay.abs() >= 0.01)
+                  Text(
+                    '${deltaDisplay >= 0 ? '+' : ''}${deltaDisplay.toStringAsFixed(2)}',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 9,
-                      color: delta >= 0 ? AppColors.profit : AppColors.loss,
+                      color: deltaDisplay >= 0
+                          ? AppColors.profit
+                          : AppColors.loss,
                     ),
                   ),
               ],
@@ -763,30 +1021,45 @@ class _DcaTableRow extends StatelessWidget {
           ),
           Expanded(
             flex: 3,
-            child: TextField(
-              controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
-              ],
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 6,
+            child: Column(
+              children: [
+                TextField(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+                  ],
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 6,
+                    ),
+                    suffixText: inputInUsd ? '\$' : '฿',
+                    suffixStyle: const TextStyle(fontSize: 9),
+                  ),
+                  onTap: onFieldTap,
+                  onChanged: (_) => onChanged(),
                 ),
-                suffixText: '฿',
-                suffixStyle: TextStyle(fontSize: 9),
-              ),
-              onTap: onFieldTap,
-              onChanged: (_) => onChanged(),
+                if (currentThb != null && currentThb > 0)
+                  Text(
+                    inputInUsd
+                        ? formatThbCompact(currentThb)
+                        : formatUsdFromThb(currentThb, usdThbRate),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 8,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+              ],
             ),
           ),
           Expanded(
@@ -805,14 +1078,28 @@ class _DcaTableRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  row == null ? '—' : formatThbCompact(row!.buyAmount),
+                  row == null
+                      ? '—'
+                      : (inputInUsd
+                          ? thbToUsd(row!.buyAmount, usdThbRate)
+                              .toStringAsFixed(2)
+                          : formatThbCompact(row!.buyAmount)),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: AppColors.accent,
                   ),
                 ),
-                if (row != null)
+                if (row != null) ...[
+                  Text(
+                    inputInUsd
+                        ? formatThbCompact(row!.buyAmount)
+                        : formatUsdFromThb(row!.buyAmount, usdThbRate),
+                    style: const TextStyle(
+                      fontSize: 8,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   Text(
                     '${row!.differencePercent >= 0 ? '+' : ''}${row!.differencePercent.toStringAsFixed(1)}%',
                     style: TextStyle(
@@ -824,6 +1111,7 @@ class _DcaTableRow extends StatelessWidget {
                               : AppColors.accent),
                     ),
                   ),
+                ],
               ],
             ),
           ),
@@ -883,9 +1171,13 @@ class _ActionBadge extends StatelessWidget {
 }
 
 class _DcaTotalFooter extends StatelessWidget {
-  const _DcaTotalFooter({required this.totalBuy});
+  const _DcaTotalFooter({
+    required this.totalBuy,
+    required this.usdThbRate,
+  });
 
   final double totalBuy;
+  final double usdThbRate;
 
   @override
   Widget build(BuildContext context) {
@@ -902,13 +1194,25 @@ class _DcaTotalFooter extends StatelessWidget {
             'รวมซื้อเดือนหน้า',
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
-          Text(
-            formatThb(totalBuy),
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.accent,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formatThb(totalBuy),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.accent,
+                ),
+              ),
+              Text(
+                formatUsdFromThb(totalBuy, usdThbRate),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
           ),
         ],
       ),

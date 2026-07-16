@@ -21,6 +21,7 @@ class AssetDetailScreen extends ConsumerWidget {
     final historicalAsync = ref.watch(assetHistoricalProvider(symbol));
     final chartPeriod = ref.watch(chartPeriodProvider);
     final displayName = AppConstants.assetDisplayNames[symbol] ?? symbol;
+    final usdThbRate = ref.watch(usdThbRateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -180,7 +181,7 @@ class AssetDetailScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _infoMessage(hv),
+                        _infoMessage(hv, usdThbRate),
                         style: const TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 13,
@@ -200,12 +201,12 @@ class AssetDetailScreen extends ConsumerWidget {
     );
   }
 
-  String _infoMessage(HoldingValue hv) {
+  String _infoMessage(HoldingValue hv, double usdThbRate) {
     if (hv.holding.isThaiFund) {
       return 'กองทุนไทย — ใช้มูลค่า NAV ที่บันทึกไว้ (Mock) อัปเดตเองใน Settings ภายหลัง';
     }
     if (hv.isLive) {
-      return 'ราคา Live · แปลงเป็น THB ที่ ${AppConstants.usdThbRate} (FMP หรือ Yahoo Finance)';
+      return 'ราคา Live · แปลงเป็น THB ที่ ${usdThbRate.toStringAsFixed(2)} (FMP หรือ Yahoo Finance)';
     }
     return 'ราคา Mock — ไม่สามารถดึงข้อมูลได้ชั่วคราว';
   }
