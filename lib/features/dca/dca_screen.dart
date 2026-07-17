@@ -346,7 +346,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 6, bottom: 2),
                       child: Text(
-                        '${activeProfile.emoji} Growth 85% · ปันผล 5% · ทอง 10%',
+                        '${activeProfile.emoji} Growth 80% · ปันผล 10% · ทอง 10%',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 11,

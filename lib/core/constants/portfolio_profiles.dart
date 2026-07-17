@@ -66,7 +66,7 @@ class PortfolioProfiles {
     ],
   );
 
-  /// พอร์ตแฟน — growth 85% + ปันผล 5% + ทอง 10%
+  /// พอร์ตแฟน — growth 80% + ปันผล 10% + ทอง 10%
   static const partner = PortfolioProfile(
     id: partnerId,
     name: 'แฟน',
@@ -82,13 +82,13 @@ class PortfolioProfiles {
       {
         'symbol': 'SCHG',
         'name': 'SCHG',
-        'target': 0.55,
+        'target': 0.50,
         'defaultValue': 0.0,
       },
       {
         'symbol': 'SCHD',
         'name': 'SCHD',
-        'target': 0.05,
+        'target': 0.10,
         'defaultValue': 0.0,
       },
       {
