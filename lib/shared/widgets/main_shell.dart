@@ -35,6 +35,7 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: child,
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(

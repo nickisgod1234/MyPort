@@ -411,6 +411,7 @@ class AppScaffold extends StatelessWidget {
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(title),
         actions: actions,

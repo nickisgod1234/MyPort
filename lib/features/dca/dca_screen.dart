@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,12 +27,13 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
   late final TextEditingController _budgetController;
   late final TextEditingController _rateController;
   late final Map<String, TextEditingController> _valueControllers;
+  late final Map<String, FocusNode> _focusNodes;
   late final Map<String, double> _previousValues;
   late Map<String, double> _committedValues;
   late String _profileId;
-  String? _activeField;
   RebalancePlan? _plan;
   bool _inputInUsd = false;
+  Timer? _recalcTimer;
 
   List<Map<String, dynamic>> get _assets =>
       PortfolioProfiles.byId(_profileId).assets;
@@ -52,6 +55,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
       text: ref.read(usdThbRateProvider).toStringAsFixed(2),
     );
     _valueControllers = {};
+    _focusNodes = {};
     _previousValues = {};
     _committedValues = {};
     _bootstrapProfile(ref.read(activeProfileIdProvider));
@@ -74,6 +78,9 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
     for (final controller in _valueControllers.values) {
       controller.dispose();
     }
+    for (final node in _focusNodes.values) {
+      node.dispose();
+    }
     _valueControllers
       ..clear()
       ..addEntries(
@@ -93,7 +100,15 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
           },
         ),
       );
-    _recalculate();
+    _focusNodes
+      ..clear()
+      ..addEntries(
+        profile.assets.map((asset) {
+          final symbol = asset['symbol'] as String;
+          return MapEntry(symbol, FocusNode());
+        }),
+      );
+    _recalculateNow();
   }
 
   double _thbFromController(String symbol) {
@@ -123,21 +138,18 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
       );
       controller.text = display.toStringAsFixed(2);
     }
-    _recalculate();
+    _recalculateNow();
   }
 
   Future<void> _onRateChanged(String raw) async {
     final parsed = double.tryParse(raw);
     if (parsed == null || parsed <= 0) {
-      _recalculate();
+      _scheduleRecalculate();
       return;
     }
     ref.read(usdThbRateProvider.notifier).state = parsed;
     await _storage.setUsdThbRate(parsed);
-
-    // Keep typed amounts as the same currency numbers; recalc THB internal uses new rate.
-    // If input is USD, changing rate changes THB equivalent — expected.
-    _recalculate();
+    _scheduleRecalculate();
   }
 
   Future<void> _switchProfile(String profileId) async {
@@ -148,7 +160,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
     ref.invalidate(portfolioSummaryProvider);
     ref.invalidate(retirementProjectionProvider);
     if (mounted) {
-      setState(() => _activeField = null);
+      setState(() {});
     }
   }
 
@@ -161,15 +173,19 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
 
   @override
   void dispose() {
+    _recalcTimer?.cancel();
     _budgetController.dispose();
     _rateController.dispose();
     for (final c in _valueControllers.values) {
       c.dispose();
     }
+    for (final node in _focusNodes.values) {
+      node.dispose();
+    }
     super.dispose();
   }
 
-  void _recalculate() {
+  RebalancePlan _computePlan() {
     final budget = double.tryParse(_budgetController.text) ?? 10000;
     final inputs = _assets.map((asset) {
       final symbol = asset['symbol'] as String;
@@ -182,16 +198,26 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
       );
     }).toList();
 
-    setState(() {
-      _plan = RebalanceCalculator.calculate(
-        assets: inputs,
-        monthlyBudget: budget,
-      );
+    return RebalanceCalculator.calculate(
+      assets: inputs,
+      monthlyBudget: budget,
+    );
+  }
+
+  void _recalculateNow() {
+    setState(() => _plan = _computePlan());
+  }
+
+  void _scheduleRecalculate() {
+    _recalcTimer?.cancel();
+    _recalcTimer = Timer(const Duration(milliseconds: 150), () {
+      if (!mounted) return;
+      setState(() => _plan = _computePlan());
     });
   }
 
   void _onBudgetChanged() {
-    _recalculate();
+    _scheduleRecalculate();
     final budget = double.tryParse(_budgetController.text);
     if (budget != null) {
       _storage.setMonthlyBudget(budget, profileId: _profileId);
@@ -199,12 +225,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
   }
 
   void _onAssetChanged(String symbol) {
-    setState(() => _activeField = symbol);
-    _recalculate();
-  }
-
-  void _onFieldTap(String fieldKey) {
-    setState(() => _activeField = fieldKey);
+    _scheduleRecalculate();
   }
 
   Future<void> _commitNow() async {
@@ -213,7 +234,6 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
     ref.invalidate(retirementProjectionProvider);
     if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() => _activeField = null);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('บันทึกแล้ว')),
     );
@@ -309,8 +329,7 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
 
     ref.invalidate(portfolioSummaryProvider);
     ref.invalidate(retirementProjectionProvider);
-    _recalculate();
-    setState(() => _activeField = null);
+    _recalculateNow();
 
     if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
@@ -328,107 +347,97 @@ class _DcaScreenState extends ConsumerState<DcaScreen> {
 
     return AppScaffold(
       title: AppConstants.appName,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight - 16),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        children: [
+            _ProfileSwitcher(
+              selectedId: _profileId,
+              onSelected: _switchProfile,
+            ),
+            if (_profileId == PortfolioProfiles.partnerId)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, bottom: 2),
+                child: Text(
+                  '${activeProfile.emoji} Growth 80% · ปันผล 10% · ทอง 10%',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 6),
+            _CompactBudgetBar(
+              budgetController: _budgetController,
+              rateController: _rateController,
+              plan: plan,
+              usdThbRate: usdThbRate,
+              inputInUsd: _inputInUsd,
+              onChanged: _onBudgetChanged,
+              onClear: _clearAssetValues,
+              onRateChanged: _onRateChanged,
+              onCurrencyChanged: _setInputCurrency,
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ProfileSwitcher(
-                    selectedId: _profileId,
-                    onSelected: _switchProfile,
-                  ),
-                  if (_profileId == PortfolioProfiles.partnerId)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6, bottom: 2),
-                      child: Text(
-                        '${activeProfile.emoji} Growth 80% · ปันผล 10% · ทอง 10%',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 6),
-                  _CompactBudgetBar(
-                    budgetController: _budgetController,
-                    rateController: _rateController,
-                    plan: plan,
-                    usdThbRate: usdThbRate,
-                    inputInUsd: _inputInUsd,
-                    onChanged: _onBudgetChanged,
-                    onClear: _clearAssetValues,
-                    onRateChanged: _onRateChanged,
-                    onCurrencyChanged: _setInputCurrency,
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _DcaTableHeader(inputInUsd: _inputInUsd),
+                  _DcaTableHeader(inputInUsd: _inputInUsd),
+                  const Divider(height: 1, color: AppColors.border),
+                  ..._assets.asMap().entries.expand((entry) {
+                    final index = entry.key;
+                    final asset = entry.value;
+                    final symbol = asset['symbol'] as String;
+                    final row = plan?.rows.firstWhere(
+                      (r) => r.symbol == symbol,
+                    );
+                    return [
+                      if (index > 0)
                         const Divider(height: 1, color: AppColors.border),
-                        ..._assets.asMap().entries.expand((entry) {
-                          final index = entry.key;
-                          final asset = entry.value;
-                          final symbol = asset['symbol'] as String;
-                          final row = plan?.rows.firstWhere(
-                            (r) => r.symbol == symbol,
-                          );
-                          return [
-                            if (index > 0)
-                              const Divider(height: 1, color: AppColors.border),
-                            _DcaTableRow(
-                              name: AppConstants.assetDisplayNames[symbol] ??
-                                  asset['name'] as String,
-                              targetPercent:
-                                  (asset['target'] as num).toDouble(),
-                              previousValue: _previousValueFor(
-                                symbol,
-                                asset['defaultValue'] as num,
-                              ),
-                              controller: _valueControllers[symbol]!,
-                              row: row,
-                              usdThbRate: usdThbRate,
-                              inputInUsd: _inputInUsd,
-                              showSave: _activeField == symbol,
-                              onChanged: () => _onAssetChanged(symbol),
-                              onFieldTap: () => _onFieldTap(symbol),
-                              onCommit: _commitNow,
-                            ),
-                          ];
-                        }),
-                        if (plan != null) ...[
-                          const Divider(height: 1, color: AppColors.border),
-                          _DcaTotalFooter(
-                            totalBuy: plan.totalBuy,
-                            usdThbRate: usdThbRate,
-                          ),
-                        ],
-                      ],
+                      _DcaTableRow(
+                        key: ValueKey('dca-$symbol'),
+                        name: AppConstants.assetDisplayNames[symbol] ??
+                            asset['name'] as String,
+                        targetPercent: (asset['target'] as num).toDouble(),
+                        previousValue: _previousValueFor(
+                          symbol,
+                          asset['defaultValue'] as num,
+                        ),
+                        controller: _valueControllers[symbol]!,
+                        focusNode: _focusNodes[symbol]!,
+                        row: row,
+                        usdThbRate: usdThbRate,
+                        inputInUsd: _inputInUsd,
+                        onChanged: () => _onAssetChanged(symbol),
+                        onCommit: _commitNow,
+                      ),
+                    ];
+                  }),
+                  if (plan != null) ...[
+                    const Divider(height: 1, color: AppColors.border),
+                    _DcaTotalFooter(
+                      totalBuy: plan.totalBuy,
+                      usdThbRate: usdThbRate,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  _CompactRetirementGoal(
-                    retirement: retirement,
-                    currentAmount:
-                        plan?.totalPortfolio ?? retirement.currentAmount,
-                  ),
+                  ],
                 ],
               ),
             ),
-          );
-        },
+            const SizedBox(height: 8),
+            _CompactRetirementGoal(
+              retirement: retirement,
+              currentAmount:
+                  plan?.totalPortfolio ?? retirement.currentAmount,
+            ),
+            const SizedBox(height: 24),
+        ],
       ),
     );
   }
@@ -893,16 +902,16 @@ class _DcaTableHeader extends StatelessWidget {
 
 class _DcaTableRow extends StatelessWidget {
   const _DcaTableRow({
+    super.key,
     required this.name,
     required this.targetPercent,
     required this.previousValue,
     required this.controller,
+    required this.focusNode,
     required this.row,
     required this.usdThbRate,
     required this.inputInUsd,
-    required this.showSave,
     required this.onChanged,
-    required this.onFieldTap,
     required this.onCommit,
   });
 
@@ -910,12 +919,11 @@ class _DcaTableRow extends StatelessWidget {
   final double targetPercent;
   final double? previousValue;
   final TextEditingController controller;
+  final FocusNode focusNode;
   final RebalanceRow? row;
   final double usdThbRate;
   final bool inputInUsd;
-  final bool showSave;
   final VoidCallback onChanged;
-  final VoidCallback onFieldTap;
   final Future<void> Function() onCommit;
 
   @override
@@ -1033,6 +1041,7 @@ class _DcaTableRow extends StatelessWidget {
               children: [
                 TextField(
                   controller: controller,
+                  focusNode: focusNode,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -1053,7 +1062,6 @@ class _DcaTableRow extends StatelessWidget {
                     suffixText: inputInUsd ? '\$' : '฿',
                     suffixStyle: const TextStyle(fontSize: 9),
                   ),
-                  onTap: onFieldTap,
                   onChanged: (_) => onChanged(),
                 ),
                 if (currentThb != null && currentThb > 0)
@@ -1123,7 +1131,17 @@ class _DcaTableRow extends StatelessWidget {
               ],
             ),
           ),
-          if (showSave) _SaveCheckButton(onPressed: () => onCommit()),
+          SizedBox(
+            width: 30,
+            child: ListenableBuilder(
+              listenable: focusNode,
+              builder: (context, _) {
+                return focusNode.hasFocus
+                    ? _SaveCheckButton(onPressed: () => onCommit())
+                    : const SizedBox.shrink();
+              },
+            ),
+          ),
         ],
       ),
     );
