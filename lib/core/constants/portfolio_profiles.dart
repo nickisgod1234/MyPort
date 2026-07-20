@@ -28,10 +28,10 @@ class PortfolioProfiles {
     defaultMonthlyBudget: 10000,
     assets: [
       {
-        'symbol': 'VT',
-        'name': 'VT',
-        'target': 0.30,
-        'defaultValue': 3000.0,
+        'symbol': 'VOO',
+        'name': 'VOO',
+        'target': 0.35,
+        'defaultValue': 3500.0,
       },
       {
         'symbol': 'KKP_NDQ',
@@ -42,8 +42,8 @@ class PortfolioProfiles {
       {
         'symbol': 'SMH',
         'name': 'SMH',
-        'target': 0.20,
-        'defaultValue': 2000.0,
+        'target': 0.10,
+        'defaultValue': 1000.0,
       },
       {
         'symbol': 'MTS_GOLD',
@@ -54,6 +54,12 @@ class PortfolioProfiles {
       {
         'symbol': 'BTCUSD',
         'name': 'BTC',
+        'target': 0.05,
+        'defaultValue': 500.0,
+      },
+      {
+        'symbol': 'VRT',
+        'name': 'Vertiv',
         'target': 0.05,
         'defaultValue': 500.0,
       },
@@ -76,13 +82,13 @@ class PortfolioProfiles {
       {
         'symbol': 'VT',
         'name': 'VT',
-        'target': 0.30,
+        'target': 0.35,
         'defaultValue': 0.0,
       },
       {
         'symbol': 'SCHG',
         'name': 'SCHG',
-        'target': 0.50,
+        'target': 0.45,
         'defaultValue': 0.0,
       },
       {

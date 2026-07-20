@@ -5,7 +5,7 @@ class AppConstants {
   static const portfolioName = 'เกษียณสำราญ';
   static const fmpBaseUrl = 'https://financialmodelingprep.com/stable';
   static const usdThbRate = 33.28;
-  static const portfolioDataVersion = 3;
+  static const portfolioDataVersion = 4;
 
   static const defaultTargetAmount = 7000000.0;
   static const defaultCurrentAge = 36;
@@ -18,8 +18,10 @@ class AppConstants {
 
   static const marketWatchSymbols = [
     'VT',
+    'VOO',
     'VTI',
     'SMH',
+    'VRT',
     'RKLB',
     'GCUSD',
     'SCHG',
@@ -28,16 +30,18 @@ class AppConstants {
   static const watchlistSymbols = ['AAPL', 'NVDA', 'AMZN', 'V', 'SPY'];
 
   static const targetAllocations = <String, double>{
-    'VT': 0.30,
+    'VOO': 0.35,
     'KKP_NDQ': 0.30,
-    'SMH': 0.20,
+    'SMH': 0.10,
     'MTS_GOLD': 0.10,
     'BTCUSD': 0.05,
+    'VRT': 0.05,
     'RKLB': 0.05,
   };
 
   static const assetDisplayNames = <String, String>{
     'VT': 'VT',
+    'VOO': 'VOO',
     'VTI': 'VTI',
     'KKP_NDQ': 'KKP NDQ100-UH-E',
     'SMH': 'SMH',
@@ -45,6 +49,7 @@ class AppConstants {
     'SCHD': 'SCHD',
     'TLSEMICON': 'TLSEMICON',
     'MTS_GOLD': 'Gold',
+    'VRT': 'Vertiv',
     'RKLB': 'RKLB',
     'BTCUSD': 'BTC',
     'AAPL': 'AAPL',
@@ -57,6 +62,7 @@ class AppConstants {
 
   static const assetColors = <String, int>{
     'VT': 0xFF8B2332,
+    'VOO': 0xFFB91C1C,
     'VTI': 0xFFC2410C,
     'KKP_NDQ': 0xFF1E3A8A,
     'SMH': 0xFF6B21A8,
@@ -64,6 +70,7 @@ class AppConstants {
     'SCHD': 0xFF2563EB,
     'TLSEMICON': 0xFF9333EA,
     'MTS_GOLD': 0xFFD4AF37,
+    'VRT': 0xFF14B8A6,
     'RKLB': 0xFFE91E63,
     'BTCUSD': 0xFFFF9800,
     'AAPL': 0xFFA2AAAD,
@@ -77,12 +84,12 @@ class AppConstants {
   /// Default holdings — พอร์ต "เกษียณสำราญ" จากข้อมูลจริง
   static List<Map<String, dynamic>> get defaultHoldingsJson => [
         {
-          'symbol': 'VT',
-          'displayName': 'VT',
-          'fmpSymbol': 'VT',
-          'shares': 1.0504,
-          'averageCost': 128.78,
-          'targetAllocation': 0.30,
+          'symbol': 'VOO',
+          'displayName': 'VOO',
+          'fmpSymbol': 'VOO',
+          'shares': 0.8329,
+          'averageCost': 540.0,
+          'targetAllocation': 0.35,
           'isThaiFund': false,
         },
         {
@@ -99,9 +106,9 @@ class AppConstants {
           'symbol': 'SMH',
           'displayName': 'SMH',
           'fmpSymbol': 'SMH',
-          'shares': 0.5,
+          'shares': 0.25,
           'averageCost': 300.0,
-          'targetAllocation': 0.20,
+          'targetAllocation': 0.10,
           'isThaiFund': false,
         },
         {
@@ -120,6 +127,15 @@ class AppConstants {
           'fmpSymbol': 'BTCUSD',
           'shares': 0.01,
           'averageCost': 100000.0,
+          'targetAllocation': 0.05,
+          'isThaiFund': false,
+        },
+        {
+          'symbol': 'VRT',
+          'displayName': 'Vertiv',
+          'fmpSymbol': 'VRT',
+          'shares': 0.4762,
+          'averageCost': 105.0,
           'targetAllocation': 0.05,
           'isThaiFund': false,
         },
