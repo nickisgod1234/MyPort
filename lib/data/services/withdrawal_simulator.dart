@@ -200,6 +200,8 @@ class WithdrawalSimulator {
     final safety = _safetyLevel(lastsUntilAge, plan.lifeExpectancyAge);
     final starRating = _starRating(successProbability);
 
+    final endingBalance = balance.clamp(0.0, double.infinity);
+
     return WithdrawalSimulation(
       lastsUntilAge: lastsUntilAge,
       successProbability: successProbability,
@@ -211,8 +213,8 @@ class WithdrawalSimulator {
       chartPoints: chartPoints,
       principal: plan.principal,
       profit: profit,
-      totalWithdrawn: 0,
-      remaining: plan.portfolio,
+      totalWithdrawn: cumulativeWithdrawn,
+      remaining: endingBalance,
       projectedFirstYearWithdrawal: projectedFirstYearWithdrawal ?? 0,
       simulationStartAge: plan.currentAge,
       sources: sources,

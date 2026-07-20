@@ -23,7 +23,7 @@ class RealWithdrawalService {
 
   static RealWithdrawalSnapshot fromSummary(
     PortfolioSummary summary, {
-    Map<String, double> previousValues = const {},
+    Map<String, double> costBasisValues = const {},
   }) {
     final assets = <RealAssetProfit>[];
     var annualDividend = 0.0;
@@ -36,7 +36,7 @@ class RealWithdrawalService {
 
       assets.add(
         RealAssetProfit(
-          targetAllocation: previousValues[symbol] ?? 0.0,
+          targetAllocation: hv.holding.targetAllocation,
           symbol: symbol,
           name: hv.holding.name,
           valueThb: hv.marketValueThb,
@@ -63,7 +63,7 @@ class RealWithdrawalService {
       dividendOnlyMaxMonthly: annualDividend / 12,
       recommendedMonthly4Pct: recommendedMonthly4Pct,
       assets: assets,
-      trackedAssetCount: previousValues.length,
+      trackedAssetCount: costBasisValues.length,
     );
   }
 

@@ -1047,7 +1047,14 @@ class _UsedRemainingCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text('พอร์ตปัจจุบัน ${formatThbCompact(simulation.remaining)}'),
+          Text(
+            'พอร์ตปัจจุบัน ${formatThbCompact(simulation.principal + simulation.profit)}',
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'คงเหลือเมื่อจบแผน ${formatThbCompact(simulation.remaining)}',
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          ),
         ],
       ),
     );

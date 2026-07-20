@@ -50,23 +50,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.dispose();
   }
 
+  ({int currentAge, int retirementAge, double targetAmount, double usdThbRate})?
+  _validatedSettings() {
+    final currentAge = int.tryParse(_ageController.text.trim());
+    if (currentAge == null || currentAge < 1 || currentAge > 100) {
+      _showValidationError('กรอกอายุปัจจุบันเป็นตัวเลข 1-100');
+      return null;
+    }
+
+    final retirementAge = int.tryParse(_retirementController.text.trim());
+    if (retirementAge == null || retirementAge < 1 || retirementAge > 120) {
+      _showValidationError('กรอกอายุเกษียณเป็นตัวเลข 1-120');
+      return null;
+    }
+    if (retirementAge <= currentAge) {
+      _showValidationError('อายุเกษียณต้องมากกว่าอายุปัจจุบัน');
+      return null;
+    }
+
+    final targetAmount = double.tryParse(_targetController.text.trim());
+    if (targetAmount == null || targetAmount <= 0) {
+      _showValidationError('เงินเป้าหมายต้องมากกว่า 0');
+      return null;
+    }
+
+    final usdThbRate = double.tryParse(_usdThbRateController.text.trim());
+    if (usdThbRate == null || usdThbRate <= 0) {
+      _showValidationError('เรท USD/THB ต้องมากกว่า 0');
+      return null;
+    }
+
+    return (
+      currentAge: currentAge,
+      retirementAge: retirementAge,
+      targetAmount: targetAmount,
+      usdThbRate: usdThbRate,
+    );
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red.shade700),
+    );
+  }
+
   Future<void> _save() async {
+    final validated = _validatedSettings();
+    if (validated == null) return;
+
     final storage = ref.read(storageServiceProvider);
     await storage.setApiKey(_apiKeyController.text.trim());
-    await storage.setCurrentAge(int.tryParse(_ageController.text) ?? 36);
-    await storage.setRetirementAge(
-      int.tryParse(_retirementController.text) ?? 60,
-    );
-    await storage.setTargetAmount(
-      double.tryParse(_targetController.text) ??
-          AppConstants.defaultTargetAmount,
-    );
-    final usdThbRate = double.tryParse(_usdThbRateController.text) ??
-        AppConstants.usdThbRate;
-    final safeRate = usdThbRate > 0 ? usdThbRate : AppConstants.usdThbRate;
-    await storage.setUsdThbRate(safeRate);
-    ref.read(usdThbRateProvider.notifier).state = safeRate;
+    await storage.setCurrentAge(validated.currentAge);
+    await storage.setRetirementAge(validated.retirementAge);
+    await storage.setTargetAmount(validated.targetAmount);
+    await storage.setUsdThbRate(validated.usdThbRate);
+    ref.read(usdThbRateProvider.notifier).state = validated.usdThbRate;
     await storage.setDarkMode(_darkMode);
+
+    _ageController.text = validated.currentAge.toString();
+    _retirementController.text = validated.retirementAge.toString();
+    _targetController.text = validated.targetAmount.toStringAsFixed(0);
+    _usdThbRateController.text = validated.usdThbRate.toStringAsFixed(2);
 
     ref.read(fmpApiServiceProvider).updateApiKey(_apiKeyController.text.trim());
     ref.invalidate(portfolioSummaryProvider);

@@ -122,6 +122,29 @@ void main() {
     );
   });
 
+  test('simulation returns cumulative withdrawn and ending balance', () {
+    const portfolio = 10000000.0;
+    final simulation = WithdrawalSimulator.simulate(
+      _plan(
+        portfolio: portfolio,
+        monthlyWithdrawal: 30000,
+        withdrawalRate: 0.04,
+      ),
+    );
+    final depleted = WithdrawalSimulator.simulate(
+      _plan(
+        portfolio: 1000000,
+        monthlyWithdrawal: 200000,
+        withdrawalRate: 0.24,
+      ),
+    );
+
+    expect(simulation.totalWithdrawn, greaterThan(0));
+    expect(simulation.remaining, greaterThanOrEqualTo(0));
+    expect(depleted.remaining, closeTo(0, 100));
+    expect(depleted.totalWithdrawn, greaterThan(0));
+  });
+
   test('dividend slider range keeps min below max for small portfolios', () {
     const portfolio = 800000.0;
     final (min, max) = WithdrawalSimulator.modeSliderRange(

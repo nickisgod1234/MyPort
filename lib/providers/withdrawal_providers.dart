@@ -157,7 +157,7 @@ final realWithdrawalSnapshotProvider = Provider<RealWithdrawalSnapshot?>((ref) {
   return summaryAsync.when(
     data: (s) => RealWithdrawalService.fromSummary(
       s,
-      previousValues: storage.getDcaAssetPreviousValues(),
+      costBasisValues: storage.getDcaAssetPreviousValues(),
     ),
     loading: () => null,
     error: (_, __) => null,
@@ -173,7 +173,7 @@ final withdrawalSimulationProvider = Provider<WithdrawalSimulation?>((ref) {
     data: (s) {
       final real = RealWithdrawalService.fromSummary(
         s,
-        previousValues: storage.getDcaAssetPreviousValues(),
+        costBasisValues: storage.getDcaAssetPreviousValues(),
       );
       final portfolio = s.totalValueThb;
       final monthlyWithdrawal = settings.initialized
